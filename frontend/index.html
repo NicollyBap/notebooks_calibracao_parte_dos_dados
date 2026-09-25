@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tumor Fit Tool</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail">
+      <div class="brand"><span class="brand-mark">TF</span><span><b>Tumor Fit</b><small>local lab console</small></span></div>
+      <div class="rail-status"><span class="status-dot"></span> Offline / local</div>
+      <nav id="tabs" aria-label="Project stages"></nav>
+      <div class="rail-note"><span class="eyebrow">WORKSPACE</span><strong id="session-label">No session</strong><p>Data stays on this machine.</p></div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar"><div><span class="eyebrow" id="stage-kicker">STEP 01 / 06</span><h1 id="page-title">Import your data</h1></div><button class="icon-button" id="theme-toggle" title="Change theme">◐</button></header>
+      <section id="app-view"></section>
+    </main>
+  </div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

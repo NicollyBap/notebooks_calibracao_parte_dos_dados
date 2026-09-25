@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Build specification for a local tool that fits tumour growth and treatment models and simulates dosing protocols.">
+<title>Tumor Fit Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,600;0,700;1,600&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#F4F6FA;
+  --surface:#FFFFFF;
+  --surface-2:#EAEEF5;
+  --ink:#141821;
+  --ink-2:#3B4557;
+  --muted:#6C7788;
+  --line:#D5DCE7;
+  --line-soft:#E6EBF3;
+  --accent:#A81E4C;
+  --accent-soft:#FBE9EF;
+  --violet:#453B87;
+  --violet-soft:#EBE8F7;
+  --warn:#8A5800;
+  --warn-soft:#FAF0DC;
+  --f-display:"Spectral", Georgia, "Times New Roman", serif;
+  --f-body:"Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1117; --surface:#151922; --surface-2:#1C212C;
+    --ink:#E8ECF3; --ink-2:#BAC4D2; --muted:#8794A6;
+    --line:#2B323F; --line-soft:#232936;
+    --accent:#F0739C; --accent-soft:#2B1622;
+    --violet:#A99CEC; --violet-soft:#1D1A30;
+    --warn:#D9A441; --warn-soft:#26200F;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1117; --surface:#151922; --surface-2:#1C212C;
+  --ink:#E8ECF3; --ink-2:#BAC4D2; --muted:#8794A6;
+  --line:#2B323F; --line-soft:#232936;
+  --accent:#F0739C; --accent-soft:#2B1622;
+  --violet:#A99CEC; --violet-soft:#1D1A30;
+  --warn:#D9A441; --warn-soft:#26200F;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--f-body); font-size:16.5px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.shell{max-width:860px; margin:0 auto; padding:0 24px 80px}
+
+.masthead{padding:52px 0 30px; border-bottom:1px solid var(--line); margin-bottom:48px}
+.kicker{
+  font-family:var(--f-mono); font-size:11.5px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 14px;
+}
+.masthead h1{
+  font-family:var(--f-display); font-weight:700;
+  font-size:clamp(2.3rem,5.6vw,3.3rem); line-height:1.06; letter-spacing:-.02em;
+  margin:0 0 16px; text-wrap:balance; max-width:14ch;
+}
+.masthead .dek{font-size:1.12rem; color:var(--ink-2); max-width:60ch; margin:0}
+
+.sec{margin:0 0 60px}
+.sec > * + *{margin-top:16px}
+.sec h2{
+  font-family:var(--f-display); font-weight:700; font-size:1.8rem; line-height:1.16;
+  letter-spacing:-.015em; margin:0; text-wrap:balance;
+  padding-bottom:11px; border-bottom:1px solid var(--line);
+}
+.sec h2 .num{
+  font-family:var(--f-mono); font-size:.8rem; font-weight:400; color:var(--accent);
+  display:block; margin-bottom:6px; letter-spacing:.1em;
+}
+.sec h3{font-weight:700; font-size:1.03rem; margin:32px 0 0; color:var(--ink)}
+.sec p{max-width:64ch; margin:0; color:var(--ink-2)}
+.sec p strong{color:var(--ink); font-weight:600}
+.sec ul{max-width:64ch; margin:0; padding-left:1.15em; color:var(--ink-2)}
+.sec li{margin:5px 0}
+.sec li strong{color:var(--ink); font-weight:600}
+
+code{
+  font-family:var(--f-mono); font-size:.855em; background:var(--surface-2);
+  padding:1px 5px; border-radius:3px; color:var(--ink); white-space:nowrap;
+}
+
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:4px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:.88rem; min-width:460px}
+th,td{text-align:left; padding:8px 14px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+thead th{
+  font-family:var(--f-mono); font-size:10.5px; font-weight:500; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); background:var(--surface-2);
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--f-mono); font-variant-numeric:tabular-nums; font-size:.82rem; white-space:nowrap}
+td.eq{font-family:var(--f-display); font-size:1.02rem; white-space:nowrap}
+caption{
+  caption-side:bottom; text-align:left; padding:9px 14px; font-size:.82rem;
+  color:var(--muted); border-top:1px solid var(--line-soft);
+}
+
+.note{
+  max-width:68ch; border-left:3px solid var(--warn); background:var(--warn-soft);
+  padding:13px 17px; border-radius:0 4px 4px 0; font-size:.93rem; color:var(--ink-2);
+}
+.note b{display:block; color:var(--ink); font-weight:700; margin-bottom:3px; font-size:.88rem}
+.note p{max-width:none; color:inherit; margin:0}
+.note p + p{margin-top:7px}
+
+figure{margin:0; background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:22px 22px 0}
+figure svg{width:100%; height:auto; display:block; color:var(--ink-2)}
+figcaption{
+  border-top:1px solid var(--line-soft); margin-top:16px; padding:10px 0 13px;
+  font-size:.85rem; color:var(--muted);
+}
+figcaption b{color:var(--ink-2); font-weight:600}
+.sv-box{fill:var(--surface); stroke:var(--line); stroke-width:1.25}
+.sv-box-a{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.4}
+.sv-box-v{fill:var(--violet-soft); stroke:var(--violet); stroke-width:1.4}
+.sv-box-w{fill:var(--warn-soft); stroke:var(--warn); stroke-width:1.3}
+.sv-fill{fill:var(--surface-2); stroke:var(--line); stroke-width:1}
+.sv-ghost{fill:none; stroke:var(--line); stroke-width:1.1; stroke-dasharray:4 3}
+.sv-btn{fill:var(--accent); stroke:none}
+.sv-t{font-family:var(--f-body); font-size:13.5px; fill:var(--ink); font-weight:700}
+.sv-i{font-family:var(--f-body); font-size:11px; fill:var(--ink-2)}
+.sv-m{font-family:var(--f-mono); font-size:10px; fill:var(--muted); letter-spacing:.06em}
+.sv-ma{font-family:var(--f-mono); font-size:10px; fill:var(--accent)}
+.sv-mc{font-family:var(--f-mono); font-size:10.5px; fill:var(--ink-2)}
+.sv-tag{font-family:var(--f-mono); font-size:13px; fill:var(--accent); font-weight:500}
+.sv-line{stroke:var(--ink-2); stroke-width:1.3; fill:none}
+.sv-rule{stroke:var(--line); stroke-width:1; fill:none}
+.sv-on-btn{font-family:var(--f-body); font-size:10.5px; fill:#fff; font-weight:600}
+:root[data-theme="dark"] .sv-on-btn{fill:#20090F}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sv-on-btn{fill:#20090F}}
+
+pre{
+  margin:0; background:var(--surface); border:1px solid var(--line); border-radius:4px;
+  padding:15px 17px; overflow-x:auto; font-family:var(--f-mono); font-size:.79rem;
+  line-height:1.62; color:var(--ink-2);
+}
+pre b{color:var(--accent); font-weight:500}
+pre i{color:var(--muted); font-style:normal}
+pre u{color:var(--violet); text-decoration:none}
+
+.wf{border:1px solid var(--line); border-radius:4px; background:var(--surface-2); overflow:hidden; font-family:var(--f-mono); font-size:11.5px}
+.wf + .wf{margin-top:14px}
+.wf-bar{display:flex; gap:2px; padding:7px 8px 0; border-bottom:1px solid var(--line); overflow-x:auto}
+.wf-bar span{padding:5px 10px; white-space:nowrap; color:var(--muted); border:1px solid transparent; border-bottom:none; border-radius:3px 3px 0 0}
+.wf-bar span.on{background:var(--surface); color:var(--accent); border-color:var(--line); margin-bottom:-1px}
+.wf-bar span.off{opacity:.42}
+.wf-body{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:1px; background:var(--line)}
+@media (max-width:620px){.wf-body{grid-template-columns:minmax(0,1fr)}}
+.wf-col{background:var(--surface); padding:14px 15px; min-width:0}
+.wf-col h5{margin:0 0 10px; font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted); font-weight:500}
+.wf-col ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; max-width:none}
+.wf-col li{color:var(--ink-2); line-height:1.42; padding-left:14px; position:relative; margin:0}
+.wf-col li::before{content:""; position:absolute; left:0; top:6px; width:6px; height:6px; border:1px solid var(--muted); border-radius:1px}
+.wf-col li.act::before{background:var(--accent); border-color:var(--accent)}
+.wf-plot{border:1px dashed var(--line); border-radius:3px; background:var(--surface-2); padding:12px; color:var(--muted); line-height:1.45}
+.wf-plot + .wf-plot{margin-top:9px}
+.wf-plot b{display:block; color:var(--ink-2); font-weight:500; margin-bottom:4px}
+.wf-foot{background:var(--surface); border-top:1px solid var(--line); padding:8px 15px; color:var(--muted); font-size:10.5px}
+.wf-foot b{color:var(--accent); font-weight:500}
+
+.closed{list-style:none; padding:0; display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden; max-width:none}
+.closed li{background:var(--surface); margin:0; padding:11px 15px; display:grid; grid-template-columns:180px minmax(0,1fr); gap:16px; font-size:.9rem}
+@media (max-width:620px){.closed li{grid-template-columns:minmax(0,1fr); gap:3px}}
+.closed li > span:first-child{font-family:var(--f-mono); font-size:.79rem; color:var(--accent)}
+</style>
+<style>
+html{color-scheme:light dark}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+@media print{
+  :root{--paper:#fff;--surface:#fff;--surface-2:#f2f4f8;--ink:#000;--ink-2:#333;
+        --muted:#666;--line:#bbb;--line-soft:#ddd;--accent:#8f1740;--accent-soft:#fbeaf0;
+        --violet:#3b3275;--violet-soft:#eeecf8;--warn:#7a4d00;--warn-soft:#fbf2df}
+  .shell{max-width:none;padding:0 12mm 12mm}
+  .masthead{padding-top:0}
+  figure,.wf,.tw,.note,pre,.closed{break-inside:avoid;page-break-inside:avoid}
+  .sec h2{break-after:avoid;page-break-after:avoid}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <p class="kicker">Build specification · Projeto Nicolly</p>
+    <h1>Tumor Fit Tool</h1>
+    <p class="dek">A local app where a researcher uploads their own tumour volume data. It fits the growth laws, picks the best one, fits the treatment term on top, and then lets them simulate dosing protocols to plan the next experiment.</p>
+  </header>
+
+  <main>
+
+    <!-- ============ 01 ============ -->
+    <section class="sec" id="s1">
+      <h2><span class="num">01</span>What exists and what is missing</h2>
+      <p>The scientific code already works, but only if you edit Python. Today you rename the files to match a fixed convention, run 28 notebook cells, read the winner from a text file, copy the model and its parameters by hand into a second notebook, then run again.</p>
+      <p>Saving those steps is not the real gain. The gain is being able to ask <strong>what if</strong>: take a model fitted on real data and try a dosing schedule nobody has run at the bench yet.</p>
+      <p><strong>Nothing in the scientific core gets rewritten.</strong> The seven laws, the multistart fit, the metrics and the validation all move out of the notebooks into modules, unchanged.</p>
+    </section>
+
+    <!-- ============ 02 ============ -->
+    <section class="sec" id="s2">
+      <h2><span class="num">02</span>How to build it</h2>
+      <p>Seven stages, holding everything the first working version needs. E0 comes first and everything else depends on it. E1 and E2 can be built at the same time, since one is the server and the other the interface, and they meet at E3. After that the order is fixed, because each tab needs what the previous one produced.</p>
+
+      <figure>
+        <svg viewBox="0 0 860 1210" role="img" aria-label="Build flowchart covering the whole first version: stage E0 extracts the scientific core, E1 API and E2 frontend run in parallel and meet at E3 calibration and results, then E4 treatment, E5 experiments and optional E6 report, each stage listing what it delivers and the test that closes it">
+          <defs>
+            <marker id="bc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <rect class="sv-box-a" x="30" y="16" width="800" height="196" rx="4"/>
+          <text class="sv-tag" x="52" y="46">E0</text>
+          <text class="sv-t" x="94" y="46">Scientific core, moved out of the notebooks</text>
+          <line class="sv-rule" x1="52" y1="58" x2="808" y2="58"/>
+
+          <text class="sv-m" x="52" y="80">MODELS</text>
+          <text class="sv-i" x="52" y="100">7 growth laws: exponential,</text>
+          <text class="sv-i" x="52" y="116">mendelsohn, logistic, bertalanffy,</text>
+          <text class="sv-i" x="52" y="132">gompertz, linear, surface</text>
+          <text class="sv-i" x="52" y="152">7 treatment terms: none, ED, CD,</text>
+          <text class="sv-i" x="52" y="168">AccelED, MM, LS, dePR</text>
+
+          <text class="sv-m" x="312" y="80">FITTING</text>
+          <text class="sv-i" x="312" y="100">CalibrationConfig, no globals</text>
+          <text class="sv-i" x="312" y="116">one simulate(): growth is the</text>
+          <text class="sv-i" x="312" y="132">treatment=&quot;none&quot; case</text>
+          <text class="sv-i" x="312" y="152">multistart L-BFGS-B + solve_ivp</text>
+          <text class="sv-i" x="312" y="168">θ = [shared | one T0 per mouse]</text>
+
+          <text class="sv-m" x="572" y="80">SCORING</text>
+          <text class="sv-i" x="572" y="100">BIC, AICc, RMSE, MAE, CCC, ICC</text>
+          <text class="sv-i" x="572" y="116">ΔBIC and Akaike weights</text>
+          <text class="sv-i" x="572" y="132">last-point validation</text>
+          <text class="sv-i" x="572" y="152">boundary diagnostics</text>
+          <text class="sv-i" x="572" y="168">T0 modes: free / fixed / narrow</text>
+
+          <line class="sv-rule" x1="52" y1="182" x2="808" y2="182"/>
+          <text class="sv-ma" x="52" y="200">CLOSES WHEN: the extracted core reproduces the notebooks' own output, same seed, same settings</text>
+
+          <line class="sv-line" x1="430" y1="212" x2="430" y2="238"/>
+          <path class="sv-line" d="M430 238 L230 238 L230 262" marker-end="url(#bc)"/>
+          <path class="sv-line" d="M430 238 L630 238 L630 262" marker-end="url(#bc)"/>
+          <text class="sv-m" x="444" y="234">AT THE SAME TIME</text>
+
+          <rect class="sv-box" x="30" y="266" width="390" height="176" rx="4"/>
+          <text class="sv-tag" x="52" y="294">E1</text>
+          <text class="sv-t" x="94" y="294">API and job queue</text>
+          <line class="sv-rule" x1="52" y1="306" x2="398" y2="306"/>
+          <text class="sv-i" x="52" y="328">8 JSON routes, upload through export</text>
+          <text class="sv-i" x="52" y="348">job queue: ThreadPool(1), progress</text>
+          <text class="sv-i" x="52" y="364">reported per (law, start)</text>
+          <text class="sv-i" x="52" y="384">session saved to sessions/&lt;id&gt;/</text>
+          <text class="sv-i" x="52" y="404">CSV and XLSX readers, wide and long</text>
+          <line class="sv-rule" x1="52" y1="416" x2="398" y2="416"/>
+          <text class="sv-ma" x="52" y="432">CLOSES: curl runs the whole path, no UI</text>
+
+          <rect class="sv-box" x="440" y="266" width="390" height="176" rx="4"/>
+          <text class="sv-tag" x="462" y="294">E2</text>
+          <text class="sv-t" x="504" y="294">Shell, tabs and the Data tab</text>
+          <line class="sv-rule" x1="462" y1="306" x2="808" y2="306"/>
+          <text class="sv-i" x="462" y="328">6 tabs with gates, CSS tokens, light + dark</text>
+          <text class="sv-i" x="462" y="348">uPlot vendored, so it works offline</text>
+          <text class="sv-i" x="462" y="368">upload, column mapping with auto-guess</text>
+          <text class="sv-i" x="462" y="388">control and treated roles, exclude a subject</text>
+          <text class="sv-i" x="462" y="404">validation panel, raw curves per group</text>
+          <line class="sv-rule" x1="462" y1="416" x2="808" y2="416"/>
+          <text class="sv-ma" x="462" y="432">CLOSES: an XLSX outside the convention loads</text>
+
+          <path class="sv-line" d="M230 442 L230 466 L430 466"/>
+          <path class="sv-line" d="M630 442 L630 466 L430 466"/>
+          <line class="sv-line" x1="430" y1="466" x2="430" y2="492" marker-end="url(#bc)"/>
+
+          <rect class="sv-box-a" x="30" y="496" width="800" height="192" rx="4"/>
+          <text class="sv-tag" x="52" y="524">E3</text>
+          <text class="sv-t" x="94" y="524">Calibration and Results</text>
+          <line class="sv-rule" x1="52" y1="536" x2="808" y2="536"/>
+          <text class="sv-i" x="52" y="558">config form: laws, T0 mode, starts,</text>
+          <text class="sv-i" x="52" y="574">max iterations, metric, seed</text>
+          <text class="sv-i" x="52" y="594">fast and careful presets</text>
+          <text class="sv-i" x="52" y="614">progress bar per law, with cancel</text>
+          <text class="sv-i" x="52" y="634">[ Use this model ] writes G(T) to session</text>
+
+          <text class="sv-i" x="442" y="558">ranking table: BIC, ΔBIC, Akaike weight,</text>
+          <text class="sv-i" x="442" y="574">RMSE, CCC, last-point error</text>
+          <text class="sv-i" x="442" y="594">ΔBIC below 2 flagged as a tie, in plain words</text>
+          <text class="sv-i" x="442" y="614">fit grid, one panel per mouse, plus residuals</text>
+          <text class="sv-i" x="442" y="634">boundary diagnostics shown on screen</text>
+          <line class="sv-rule" x1="52" y1="650" x2="808" y2="650"/>
+          <text class="sv-ma" x="52" y="668">CLOSES WHEN: the screen names a winner and flags anything within ΔBIC 2 as a tie</text>
+
+          <line class="sv-line" x1="430" y1="688" x2="430" y2="720" marker-end="url(#bc)"/>
+          <text class="sv-m" x="444" y="710">SESSION CARRIES G(T)</text>
+
+          <rect class="sv-box-v" x="30" y="724" width="800" height="150" rx="4"/>
+          <text class="sv-tag" x="52" y="752">E4</text>
+          <text class="sv-t" x="94" y="752">Treatment</text>
+          <line class="sv-rule" x1="52" y1="764" x2="808" y2="764"/>
+          <text class="sv-i" x="52" y="786">growth comes from tab 3, read-only</text>
+          <text class="sv-i" x="52" y="806">dose schedule editor: (day, dose) rows</text>
+          <text class="sv-i" x="52" y="826">compares none / ED / CD / AccelED / MM / LS / dePR</text>
+
+          <text class="sv-i" x="442" y="786">same ranking component as tab 3</text>
+          <text class="sv-i" x="442" y="806">curves per mouse with dose markers</text>
+          <text class="sv-i" x="442" y="826">warns when &quot;none&quot; is not beaten</text>
+          <line class="sv-rule" x1="52" y1="838" x2="808" y2="838"/>
+          <text class="sv-ma" x="52" y="856">CLOSES: the fit goes down after dosing and beats &quot;none&quot; on BIC</text>
+
+          <line class="sv-line" x1="430" y1="874" x2="430" y2="906" marker-end="url(#bc)"/>
+          <text class="sv-m" x="444" y="896">SESSION CARRIES (G, C)</text>
+
+          <rect class="sv-box-a" x="30" y="910" width="800" height="150" rx="4"/>
+          <text class="sv-tag" x="52" y="938">E5</text>
+          <text class="sv-t" x="94" y="938">Computational experiments</text>
+          <line class="sv-rule" x1="52" y1="950" x2="808" y2="950"/>
+          <text class="sv-i" x="52" y="972">protocol editor: (day, dose) rows</text>
+          <text class="sv-i" x="52" y="992">generator: N doses every k days from day d</text>
+          <text class="sv-i" x="52" y="1012">horizon and initial volume</text>
+
+          <text class="sv-i" x="442" y="972">saved scenarios drawn on one chart</text>
+          <text class="sv-i" x="442" y="992">simulated control always shown, dashed</text>
+          <text class="sv-i" x="442" y="1012">final volume and TGI %, CSV and PNG export</text>
+          <line class="sv-rule" x1="52" y1="1024" x2="808" y2="1024"/>
+          <text class="sv-ma" x="52" y="1042">CLOSES: more dosing lowers the volume sensibly and TGI follows</text>
+
+          <line class="sv-line" x1="430" y1="1060" x2="430" y2="1092" marker-end="url(#bc)"/>
+
+          <rect class="sv-box" x="30" y="1096" width="800" height="104" rx="4" stroke-dasharray="5 4"/>
+          <text class="sv-tag" x="52" y="1124">E6</text>
+          <text class="sv-t" x="94" y="1124">Report and launcher</text>
+          <text class="sv-m" x="742" y="1124">OPTIONAL</text>
+          <line class="sv-rule" x1="52" y1="1136" x2="808" y2="1136"/>
+          <text class="sv-i" x="52" y="1158">ZIP in the notebooks' own file formats, 300 dpi PNG</text>
+          <text class="sv-i" x="442" y="1158">provenance: version, seed, full config</text>
+          <text class="sv-i" x="52" y="1178">iniciar_app.bat, one double-click</text>
+          <text class="sv-ma" x="442" y="1178">CLOSES: it works with the network off</text>
+        </svg>
+        <figcaption><b>E0 to E5 make the first usable version. E6 is what you add if time is left.</b> Each stage closes on a check you can run without reading any code.</figcaption>
+      </figure>
+
+      <div class="note">
+        <b>Before the first line of code</b>
+        <p>The project has <strong>no <code>requirements.txt</code></strong>, and the <code>.venv/</code> in the folder <strong>is broken</strong>. It was copied from another project and carries JupyterLab but not numpy, scipy, pandas or matplotlib. Delete it, make a fresh one, and write the requirements: <code>numpy pandas scipy matplotlib openpyxl fastapi uvicorn python-multipart pydantic pytest</code>.</p>
+      </div>
+    </section>
+
+    <!-- ============ 03 ============ -->
+    <section class="sec" id="s3">
+      <h2><span class="num">03</span>Getting the data in</h2>
+      <p>This is the part that decides whether the tool is usable. Today the data must be renamed to fit the code. Here the code adapts to the data, and the user is the one who says what each column means. Everything downstream assumes the shape produced at the end of this path, so build it first and build it carefully.</p>
+
+      <figure>
+        <svg viewBox="0 0 860 892" role="img" aria-label="Data path from file to fit: three accepted input shapes are read with format sniffing, then a mapping screen where the user assigns the time, volume, subject and group columns, then normalisation into one table per subject, then per-subject validation with an error branch, ending in the structure the fitting code expects">
+          <defs>
+            <marker id="dc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <text class="sv-m" x="30" y="20">1 · WHAT THE USER CAN DROP IN</text>
+
+          <rect class="sv-box" x="30" y="30" width="250" height="80" rx="4"/>
+          <text class="sv-t" x="48" y="54">One file per mouse</text>
+          <text class="sv-i" x="48" y="74">two columns, time and volume</text>
+          <text class="sv-i" x="48" y="92">the file name becomes the id</text>
+
+          <rect class="sv-box" x="305" y="30" width="250" height="80" rx="4"/>
+          <text class="sv-t" x="323" y="54">One long sheet</text>
+          <text class="sv-i" x="323" y="74">one row per measurement, with</text>
+          <text class="sv-i" x="323" y="92">a subject column and a group column</text>
+
+          <rect class="sv-box" x="580" y="30" width="250" height="80" rx="4"/>
+          <text class="sv-t" x="598" y="54">One wide sheet</text>
+          <text class="sv-i" x="598" y="74">time in the first column, then</text>
+          <text class="sv-i" x="598" y="92">one column per mouse</text>
+
+          <path class="sv-line" d="M155 110 L155 132 L430 132"/>
+          <path class="sv-line" d="M430 110 L430 132"/>
+          <path class="sv-line" d="M705 110 L705 132 L430 132"/>
+          <line class="sv-line" x1="430" y1="132" x2="430" y2="156" marker-end="url(#dc)"/>
+          <text class="sv-m" x="444" y="128">CSV OR XLSX</text>
+
+          <text class="sv-m" x="30" y="150">2 · READ, GUESSING THE FORMAT</text>
+          <rect class="sv-box" x="30" y="160" width="800" height="92" rx="4"/>
+          <text class="sv-t" x="52" y="184">Sniff the file before showing anything</text>
+          <text class="sv-i" x="52" y="206">separator: comma, semicolon or tab</text>
+          <text class="sv-i" x="52" y="224">decimal point or decimal comma</text>
+          <text class="sv-i" x="52" y="242">a header row, or no header at all</text>
+          <text class="sv-i" x="442" y="206">skip blank lines and comment lines</text>
+          <text class="sv-i" x="442" y="224">keep the file name and row number</text>
+          <text class="sv-i" x="442" y="242">read everything as text at this stage</text>
+
+          <line class="sv-line" x1="430" y1="252" x2="430" y2="282" marker-end="url(#dc)"/>
+
+          <text class="sv-m" x="30" y="276">3 · THE MAPPING SCREEN</text>
+          <rect class="sv-box-a" x="30" y="286" width="800" height="146" rx="4"/>
+          <text class="sv-t" x="52" y="310">The user decides what each column is</text>
+          <line class="sv-rule" x1="52" y1="322" x2="808" y2="322"/>
+          <text class="sv-mc" x="52" y="344">Time     →  day            ▾</text>
+          <text class="sv-mc" x="52" y="364">Volume   →  volume_mm3     ▾</text>
+          <text class="sv-mc" x="52" y="384">Subject  →  mouse          ▾   or &quot;one per file&quot;</text>
+          <text class="sv-mc" x="52" y="404">Group    →  group          ▾   or &quot;one per folder&quot;</text>
+          <text class="sv-i" x="480" y="344">the app guesses from the header name</text>
+          <text class="sv-i" x="480" y="364">day, dia, time, t → Time</text>
+          <text class="sv-i" x="480" y="384">vol, tumor, mm3, V → Volume</text>
+          <text class="sv-i" x="480" y="404">every guess can be changed by hand</text>
+          <text class="sv-ma" x="52" y="424">A live preview of the first rows sits next to the dropdowns, so a wrong pick is visible at once</text>
+
+          <line class="sv-line" x1="430" y1="432" x2="430" y2="462" marker-end="url(#dc)"/>
+
+          <text class="sv-m" x="30" y="456">4 · NORMALISE</text>
+          <rect class="sv-box" x="30" y="466" width="800" height="112" rx="4"/>
+          <text class="sv-t" x="52" y="490">Turn the choices into one table per animal</text>
+          <text class="sv-i" x="52" y="512">rename the chosen columns to t and V</text>
+          <text class="sv-i" x="52" y="530">cast to float, drop rows that cannot be read</text>
+          <text class="sv-i" x="52" y="548">sort by t inside each subject</text>
+          <text class="sv-i" x="52" y="568">unit fields: days or hours, mm³ or cm³</text>
+          <text class="sv-i" x="442" y="512">split into one table per subject</text>
+          <text class="sv-i" x="442" y="530">attach the group label to each one</text>
+          <text class="sv-i" x="442" y="548">remember where every row came from</text>
+          <text class="sv-i" x="442" y="568">a wide sheet becomes long here</text>
+
+          <line class="sv-line" x1="310" y1="578" x2="310" y2="608" marker-end="url(#dc)"/>
+
+          <text class="sv-m" x="30" y="602">5 · VALIDATE, ONE SUBJECT AT A TIME</text>
+          <rect class="sv-box" x="30" y="612" width="560" height="122" rx="4"/>
+          <text class="sv-t" x="52" y="636">Check each animal on its own</text>
+          <text class="sv-i" x="52" y="658">at least 4 points, otherwise the fit is meaningless</text>
+          <text class="sv-i" x="52" y="676">t strictly increasing, no repeated times</text>
+          <text class="sv-i" x="52" y="694">V above zero everywhere</text>
+          <text class="sv-i" x="52" y="712">no gap so large it swallows the whole curve</text>
+
+          <line class="sv-line" x1="590" y1="672" x2="614" y2="672" marker-end="url(#dc)"/>
+          <rect class="sv-box-w" x="618" y="612" width="212" height="122" rx="4"/>
+          <text class="sv-t" x="638" y="636">If a check fails</text>
+          <text class="sv-i" x="638" y="658">name the subject and the</text>
+          <text class="sv-i" x="638" y="676">row, not a generic error</text>
+          <text class="sv-i" x="638" y="694">offer to drop that subject</text>
+          <text class="sv-i" x="638" y="712">and carry on with the rest</text>
+
+          <line class="sv-line" x1="310" y1="734" x2="310" y2="764" marker-end="url(#dc)"/>
+
+          <text class="sv-m" x="30" y="758">6 · READY FOR THE FIT</text>
+          <rect class="sv-box-v" x="30" y="768" width="800" height="112" rx="4"/>
+          <text class="sv-t" x="52" y="792">What the rest of the app consumes</text>
+          <line class="sv-rule" x1="52" y1="804" x2="808" y2="804"/>
+          <text class="sv-mc" x="52" y="826">datasets = [ (subject, group, t[], V[]), … ]</text>
+          <text class="sv-i" x="52" y="848">one group marked control, the others treated</text>
+          <text class="sv-i" x="52" y="868">excluded subjects stay visible in the chart, out of the fit</text>
+          <text class="sv-i" x="480" y="826">raw curves drawn so the user can eyeball them</text>
+          <text class="sv-i" x="480" y="848">nothing here assumes a shared time grid</text>
+          <text class="sv-ma" x="480" y="868">this is the exact shape fit_global_model expects</text>
+        </svg>
+        <figcaption><b>The mapping screen is the heart of it.</b> Every other design in the app can be changed later, but this contract cannot: get the output shape at step 6 right and the fitting code from the notebooks runs unchanged.</figcaption>
+      </figure>
+
+      <div class="note">
+        <b>Do not assume a regular grid</b>
+        <p>Times can be non-integer, subjects can start at different days, and the number of points differs from animal to animal. Nothing downstream may assume a uniform step, a common start time, or an equal count per subject. This falls out naturally if step 6 keeps one independent table per animal.</p>
+      </div>
+    </section>
+
+    <!-- ============ 04 ============ -->
+    <section class="sec" id="s4">
+      <h2><span class="num">04</span>What every tab looks like</h2>
+      <p>All six tabs share one skeleton, so learning one teaches the rest. Controls on the left in a column that does not grow, charts and tables on the right taking whatever is left, and a strip at the bottom that always says what unlocks the next tab.</p>
+
+      <figure>
+        <svg viewBox="0 0 860 530" role="img" aria-label="Anatomy of a tab: a tab bar on top with locked tabs dimmed, a fixed-width controls column on the left, a growing chart area on the right, and a gate strip at the bottom, with notes on tab bar behaviour, panel sizing and colour use">
+          <rect class="sv-fill" x="30" y="30" width="800" height="368" rx="5"/>
+
+          <rect class="sv-box" x="38" y="38" width="124" height="34" rx="3"/>
+          <text class="sv-i" x="62" y="59" style="fill:var(--accent);font-weight:700">Data</text>
+          <line x1="38" y1="70" x2="162" y2="70" style="stroke:var(--accent);stroke-width:2.5"/>
+          <rect class="sv-ghost" x="168" y="38" width="124" height="34" rx="3"/>
+          <text class="sv-i" x="188" y="59">Calibration</text>
+          <rect class="sv-ghost" x="298" y="38" width="124" height="34" rx="3"/>
+          <text class="sv-i" x="326" y="59">Results</text>
+          <rect class="sv-ghost" x="428" y="38" width="124" height="34" rx="3" opacity=".42"/>
+          <text class="sv-i" x="450" y="59" opacity=".42">Treatment</text>
+          <rect class="sv-ghost" x="558" y="38" width="124" height="34" rx="3" opacity=".42"/>
+          <text class="sv-i" x="576" y="59" opacity=".42">Experiments</text>
+          <rect class="sv-ghost" x="688" y="38" width="124" height="34" rx="3" opacity=".42"/>
+          <text class="sv-i" x="720" y="59" opacity=".42">Report</text>
+
+          <line class="sv-rule" x1="30" y1="80" x2="830" y2="80"/>
+          <line class="sv-rule" x1="322" y1="80" x2="322" y2="352"/>
+          <line class="sv-rule" x1="30" y1="352" x2="830" y2="352"/>
+
+          <text class="sv-m" x="52" y="104">CONTROLS</text>
+          <rect class="sv-ghost" x="52" y="114" width="248" height="42" rx="3"/>
+          <text class="sv-i" x="70" y="140">drop files here, or browse</text>
+          <rect class="sv-fill" x="52" y="170" width="248" height="22" rx="3"/>
+          <text class="sv-mc" x="62" y="185">Time    →  day        ▾</text>
+          <rect class="sv-fill" x="52" y="200" width="248" height="22" rx="3"/>
+          <text class="sv-mc" x="62" y="215">Volume  →  volume_mm3 ▾</text>
+          <rect class="sv-fill" x="52" y="230" width="248" height="22" rx="3"/>
+          <text class="sv-mc" x="62" y="245">Subject →  mouse      ▾</text>
+          <rect class="sv-fill" x="52" y="260" width="248" height="22" rx="3"/>
+          <text class="sv-mc" x="62" y="275">Group   →  group      ▾</text>
+          <rect class="sv-btn" x="52" y="296" width="112" height="26" rx="3"/>
+          <text class="sv-on-btn" x="80" y="313">Continue</text>
+          <text class="sv-i" x="176" y="313" opacity=".7">Reset</text>
+
+          <text class="sv-m" x="344" y="104">CHARTS AND TABLES</text>
+          <rect class="sv-ghost" x="344" y="114" width="468" height="130" rx="3"/>
+          <text class="sv-i" x="362" y="140">raw curves, one colour per group, one line per animal</text>
+          <text class="sv-i" x="362" y="160">legend is clickable, clicking hides that animal</text>
+          <text class="sv-i" x="362" y="180">hovering a point shows day and volume</text>
+          <text class="sv-m" x="362" y="228">the chart owns its own scroll, the page never scrolls sideways</text>
+          <rect class="sv-ghost" x="344" y="256" width="468" height="80" rx="3"/>
+          <text class="sv-i" x="362" y="282">preview table, first rows, columns already renamed to t and V</text>
+          <text class="sv-i" x="362" y="302">a row that failed validation is marked in place</text>
+          <text class="sv-i" x="362" y="322">numbers right aligned, monospaced, so digits line up</text>
+
+          <text class="sv-ma" x="52" y="378">GATE: 4 or more points per animal, times increasing, volumes positive, one group set as control</text>
+
+          <line class="sv-rule" x1="30" y1="416" x2="830" y2="416"/>
+
+          <text class="sv-m" x="30" y="440">TAB BAR</text>
+          <text class="sv-i" x="30" y="460">the open tab is underlined in the</text>
+          <text class="sv-i" x="30" y="476">accent colour</text>
+          <text class="sv-i" x="30" y="496">a locked tab stays visible at low</text>
+          <text class="sv-i" x="30" y="512">opacity and says what unlocks it</text>
+
+          <text class="sv-m" x="310" y="440">PANELS</text>
+          <text class="sv-i" x="310" y="460">controls column fixed near 320 px,</text>
+          <text class="sv-i" x="310" y="476">it never stretches</text>
+          <text class="sv-i" x="310" y="496">charts take the rest and stack into</text>
+          <text class="sv-i" x="310" y="512">one column on a narrow screen</text>
+
+          <text class="sv-m" x="590" y="440">COLOUR</text>
+          <text class="sv-i" x="590" y="460">the accent marks the one primary</text>
+          <text class="sv-i" x="590" y="476">action, everything else is neutral</text>
+          <text class="sv-i" x="590" y="496">one colour per group, kept the same</text>
+          <text class="sv-i" x="590" y="512">in every tab and every export</text>
+        </svg>
+        <figcaption><b>The Data tab shown as the example, but the frame is the same in all six.</b> Only the contents of the two panels change from tab to tab, which is why the ranking table and the fit grid can be written once and reused in tabs 3 and 4.</figcaption>
+      </figure>
+
+      <p>The sketches below fill that frame for each tab. Left column is what sits in the controls panel, right column is what sits in the chart panel, and the footer is the gate.</p>
+
+      <div class="wf">
+        <div class="wf-bar"><span class="on">Data</span><span class="off">Calibration</span><span class="off">Results</span><span class="off">Treatment</span><span class="off">Experiments</span><span class="off">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li class="act">Drop CSV or XLSX, many files or one sheet</li>
+              <li>Four dropdowns: time, volume, subject, group</li>
+              <li>Units: days ▾ and mm³ ▾</li>
+              <li>Role: ⦿ control ○ treated &nbsp;|&nbsp; exclude a subject</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>Raw curves and preview table</b>one trace per subject, one colour per group; first 10 rows with the columns already renamed</div>
+            <div class="wf-plot"><b>Validation, per subject</b>✓ 6 subjects, 7 to 15 points ✓ increasing times ✓ V &gt; 0</div>
+          </div>
+        </div>
+        <div class="wf-foot">Unlocks tab 2 when: <b>every subject has at least 4 points, increasing times, positive volumes, and one group is marked as control.</b></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-bar"><span>Data</span><span class="on">Calibration</span><span class="off">Results</span><span class="off">Treatment</span><span class="off">Experiments</span><span class="off">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li class="act">Preset: ⦿ fast (2 starts) ○ careful (8)</li>
+              <li>Laws to compare, 7 boxes, all ticked</li>
+              <li>T0 mode: free ▾ | bounds 0.10× to 4.0×</li>
+              <li>Criterion: ⦿ BIC ○ AICc | seed: 42 &nbsp; [ Calibrate ]</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>Progress per law, with cancel</b>exponential ✓ · logistic ▓▓▓▓░░ 4/6 · bertalanffy ⋯ &nbsp; stage text from GET /api/jobs</div>
+            <div class="wf-plot"><b>Warning on the fast preset</b>"2 starts may settle in a local minimum"</div>
+          </div>
+        </div>
+        <div class="wf-foot">Unlocks tab 3 when: <b>the job reaches <code>done</code> with at least one law fitted.</b></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-bar"><span>Data</span><span>Calibration</span><span class="on">Results</span><span class="off">Treatment</span><span class="off">Experiments</span><span class="off">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li class="act">Ranking: law · BIC · ΔBIC · weight · RMSE · CCC</li>
+              <li>Rows below ΔBIC 2 labelled "tie"</li>
+              <li>Plain sentence: "<i>linear wins, but logistic is within ΔBIC 2, so the data do not separate them</i>"</li>
+              <li class="act">[ Use this model ] on each row</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>One panel per mouse</b>points plus all laws in grey, winner highlighted, the interactive version of <code>plot_fits</code></div>
+            <div class="wf-plot"><b>Parameters and residuals</b>a flag when a value sits on its bound; residuals against time show bias that RMSE hides</div>
+          </div>
+        </div>
+        <div class="wf-foot">Unlocks tab 4 when: <b>the user clicks "Use this model", which writes G(T) and its parameters into the session.</b></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-bar"><span>Data</span><span>Calibration</span><span>Results</span><span class="on">Treatment</span><span class="off">Experiments</span><span class="off">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li>Growth fixed: <span style="color:var(--accent)">linear · r 12.5 · f 80.0</span>, read-only</li>
+              <li class="act">Treated group: hIL2_NOG_CART ▾</li>
+              <li>Schedule given: (day, dose) table</li>
+              <li>Compare: none ☑ ED ☑ CD ☑ MM ☑ AccelED ☐ LS ☐ dePR ☐</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>Same ranking table as tab 3</b>reuses the component, with <code>none</code> always present; curves show triangles on dosing days</div>
+            <div class="wf-plot"><b>Warning when <code>none</code> is not beaten</b>"no treatment function explained the data better than not treating, so check the schedule"</div>
+          </div>
+        </div>
+        <div class="wf-foot">Unlocks tab 5 when: <b>a treatment function is chosen, putting the fitted (G, C) pair into the session.</b></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-bar"><span>Data</span><span>Calibration</span><span>Results</span><span>Treatment</span><span class="on">Experiments</span><span class="off">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li>Model in use: <span style="color:var(--accent)">linear + ED</span></li>
+              <li class="act">Editor (day, dose), editable rows</li>
+              <li>Generator: "3 doses every 7 days from day 7"</li>
+              <li>Horizon 60 days, initial V 0.8 mm³ &nbsp; [ Simulate ] [ Save ]</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>All scenarios on one chart</b>simulated control always drawn dashed, triangles at the doses</div>
+            <div class="wf-plot"><b>Outcomes and export</b>scenario, final volume, TGI % against control; CSV of the curves plus PNG</div>
+          </div>
+        </div>
+        <div class="wf-foot">Unlocks tab 6 when: <b>at least one scenario is saved. This is the only tab outside the job queue, since it simulates in milliseconds.</b></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-bar"><span>Data</span><span>Calibration</span><span>Results</span><span>Treatment</span><span>Experiments</span><span class="on">Report</span></div>
+        <div class="wf-body">
+          <div class="wf-col">
+            <h5>Controls</h5>
+            <ul>
+              <li class="act">☑ summary_*.csv ☑ parameters_*.csv ☑ report_*.txt</li>
+              <li>☑ Fit PNGs at 300 dpi &nbsp; ☑ Scenarios (CSV + PNG)</li>
+              <li>☑ Provenance: version, seed, settings</li>
+              <li class="act">[ Download ZIP ]</li>
+            </ul>
+          </div>
+          <div class="wf-col">
+            <h5>Charts</h5>
+            <div class="wf-plot"><b>One-screen summary</b>data used, winning law and why, treatment, scenarios tested. This is the text that becomes a Methods paragraph.</div>
+            <div class="wf-plot"><b>Same file formats as the notebooks</b>same names, same columns</div>
+          </div>
+        </div>
+        <div class="wf-foot">Provenance is what makes a result reproducible: <b>seed, version and settings stored next to the numbers.</b></div>
+      </div>
+    </section>
+
+    <!-- ============ 05 ============ -->
+    <section class="sec" id="s5">
+      <h2><span class="num">05</span>What is being fitted</h2>
+      <p>A one-variable ODE for the tumour volume <code>T(t)</code>, with a growth term and an elimination term:</p>
+      <pre>dT/dt = <b>G(T)</b> − <u>C(t, T)</u> · T
+        <i>↑ growth law</i>      <i>↑ treatment effect</i></pre>
+      <p>Order matters. Fit <code>G(T)</code> on the control group first, where <code>C</code> is zero, then fit <code>C(t,T)</code> on the treated group with <code>G(T)</code> frozen. Fitting both at once makes the problem ill-posed, because growth and elimination trade off against each other.</p>
+
+      <div class="tw">
+        <table>
+          <caption>The seven growth laws, in <code>growth_term(t, T, params, model)</code>. <code>exponential</code> has a closed form and skips the integrator.</caption>
+          <thead><tr><th>Law</th><th>dT/dt</th><th class="mono">Par.</th><th>Behaviour</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">exponential</td><td class="eq">r·T</td><td class="mono">r</td><td>Unbounded growth.</td></tr>
+            <tr><td class="mono">mendelsohn</td><td class="eq">r·T<sup>b</sup></td><td class="mono">r, b</td><td>Power law, <code>b&lt;1</code> slows down.</td></tr>
+            <tr><td class="mono">logistic</td><td class="eq">r·T·(1 − T/K)</td><td class="mono">r, K</td><td>Saturates at K, symmetric.</td></tr>
+            <tr><td class="mono">bertalanffy</td><td class="eq">r·T<sup>2/3</sup> − α·T</td><td class="mono">r, α</td><td>Surface gain, volume loss.</td></tr>
+            <tr><td class="mono">gompertz</td><td class="eq">r·T·ln(K/(T+c))</td><td class="mono">r, K, c</td><td>Saturates asymmetrically.</td></tr>
+            <tr><td class="mono">linear</td><td class="eq">r·T/(T+f)</td><td class="mono">r, f</td><td>Tends to a constant rate.</td></tr>
+            <tr><td class="mono">surface</td><td class="eq">r·T/(T+f)<sup>1/3</sup></td><td class="mono">r, f</td><td>Between linear and exponential.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>For the treatment term, each dose <code>d</code> given on day <code>τ</code> contributes from <code>τ</code> onwards, with <code>Δt = t − τ</code> and <code>D</code> the cumulative dose. Only <code>ED</code> is written today. The other five already have their formula in section 7.1 of the treatment notebook and just need to become code.</p>
+      <div class="tw">
+        <table>
+          <caption>All of them sum over the doses and return <code>C ≥ 0</code>. <code>none</code> is the baseline and must always be in the comparison.</caption>
+          <thead><tr><th>Name</th><th>Per dose</th><th class="mono">Par.</th><th>Biological reading</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">none</td><td class="eq">0</td><td class="mono">n/a</td><td>Baseline.</td></tr>
+            <tr><td class="mono">ED</td><td class="eq">a·d·e<sup>−b·Δt</sup></td><td class="mono">a, b</td><td>Effect fades after the dose.</td></tr>
+            <tr><td class="mono">CD</td><td class="eq">a·D·e<sup>−b·Δt</sup></td><td class="mono">a, b</td><td>Driven by cumulative dose.</td></tr>
+            <tr><td class="mono">AccelED</td><td class="eq">a·d·e<sup>−b·Δt²</sup></td><td class="mono">a, b</td><td>Short window of action.</td></tr>
+            <tr><td class="mono">MM</td><td class="eq">a·d/(1 + b·d)</td><td class="mono">a, b</td><td>Doubling the dose does not double the effect.</td></tr>
+            <tr><td class="mono">LS</td><td class="eq">a·d/(1 + b·T)</td><td class="mono">a, b</td><td>A larger tumour resists more.</td></tr>
+            <tr><td class="mono">dePR</td><td class="eq">δ·d<sup>λ</sup>/(s·T<sup>λ</sup> + d<sup>λ</sup>)</td><td class="mono">δ, s, λ</td><td>Dose competes with tumour size.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>When porting <code>dePR</code>, rename the parameter <code>d</code> to <code>delta</code>. In the original formula it clashes with the dose, also called <code>d</code>.</p>
+
+      <h3>One fit for the whole group</h3>
+      <p>The law is shared across the group, but each animal gets its own initial volume, since the mice share the biology and not the implant size:</p>
+      <pre>θ = [ <b>r, K</b> <i>(shared)</i> | <u>T0₁, T0₂, …, T0ₙ</u> <i>(one per mouse)</i> ]
+k_total = n_shared + n_mice</pre>
+      <p>The objective is the mean SSE, with a <code>1e18</code> penalty when integration fails. The optimiser is <code>L-BFGS-B</code> with multistart, N starts sampled inside the bounds and the best one wins. Several of these models have local minima, so multistart is not optional.</p>
+
+      <h3>Picking a model</h3>
+      <ul>
+        <li><strong>BIC</strong> is the main criterion, and <strong>ΔBIC</strong> against the winner is what the user actually needs to see. Below 2 counts as a tie.</li>
+        <li><strong>Akaike weights</strong> turn those gaps into something that reads like a relative probability, which is the clearest way to show a tie to someone who is not a statistician.</li>
+        <li><strong>Last-point validation</strong> refits without the final points and measures the error on them. It tells apart a model that describes the data from one that predicts, which is what matters when planning an experiment.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 06 ============ -->
+    <section class="sec" id="s6">
+      <h2><span class="num">06</span>Architecture and API</h2>
+      <p>Local and offline. A Python server on <code>127.0.0.1</code> serves the interface as static files and exposes a JSON API, so the data never leaves the machine.</p>
+      <pre>app/
+  backend/
+    main.py            <i># FastAPI: API + serves frontend/ as static</i>
+    jobs.py            <i># job queue + progress</i>
+    schemas.py         <i># Pydantic</i>
+    api/    datasets.py  calibration.py  treatment.py  experiments.py  export.py
+    core/   <b>config.py  io_data.py  models.py  specs.py</b>
+            <b>fitting.py  metrics.py  selection.py  diagnostics.py  plots.py</b>
+  frontend/
+    index.html
+    css/tokens.css  css/layout.css  css/components.css
+    js/api.js  js/state.js  js/charts.js  js/tabs/*.js
+    vendor/uPlot.min.js   <b># vendored, because offline means no CDN</b>
+  sessions/            <i># saved state, so closing and reopening does not refit</i>
+iniciar_app.bat
+requirements.txt
+tests/test_core_parity.py</pre>
+      <p>No bundler and no framework. Native ES modules and plain CSS. Calibration takes minutes, so it runs in a queue with one worker thread while the frontend polls progress every 500 ms. Use threads rather than processes: SciPy releases the GIL in the numeric work, this is a single user on one machine, and the <code>shared_to_params</code> lambdas cannot be pickled.</p>
+
+      <h3>Where each module comes from</h3>
+      <p>Keep the function names and bodies. The one change to make everywhere is that <strong>every global becomes a field of <code>CalibrationConfig</code></strong>, passed in explicitly. And <code>simulate()</code> replaces both notebooks' versions, since growth is just the <code>treatment_model="none"</code> case.</p>
+      <div class="tw">
+        <table>
+          <caption>Cells from <code>calibracao_crescimento.ipynb</code> (growth) and <code>calibracao_tratamento.ipynb</code> (treat).</caption>
+          <thead><tr><th>Module</th><th>Functions</th><th class="mono">Source</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">config.py</td><td><code>CalibrationConfig</code>, the former globals with the same defaults</td><td class="mono">growth 4, treat 4</td></tr>
+            <tr><td class="mono">io_data.py</td><td><code>read_time_volume_file</code>, <code>validate_datasets</code>, <code>sort_files</code>, plus new XLSX and long-format readers</td><td class="mono">growth 6</td></tr>
+            <tr><td class="mono">models.py</td><td><code>safe_positive</code>, <code>growth_term</code>, <code>treatment_effect</code>, <code>rhs</code>, <code>simulate</code></td><td class="mono">growth 10,12, treat 12,14</td></tr>
+            <tr><td class="mono">specs.py</td><td><code>get_model_spec</code>, <code>get_t0_bounds</code>, <code>get_treatment_spec</code></td><td class="mono">growth 14, treat 18</td></tr>
+            <tr><td class="mono">fitting.py</td><td><code>objective_factory</code>, <code>multistart_optimize</code>, <code>fit_global_model</code></td><td class="mono">growth 16, 20</td></tr>
+            <tr><td class="mono">metrics.py</td><td><code>metrics_from_predictions</code> and the individual metrics</td><td class="mono">growth 18</td></tr>
+            <tr><td class="mono">selection.py</td><td><code>build_summary_table</code>, last-point validation, plus new ΔBIC and Akaike weights</td><td class="mono">growth 22, 24</td></tr>
+            <tr><td class="mono">diagnostics.py</td><td><code>is_near_bound</code>, <code>build_diagnostics</code></td><td class="mono">growth 20</td></tr>
+            <tr><td class="mono">plots.py</td><td><code>plot_fits</code>, only for the 300 dpi PNG export</td><td class="mono">growth 24</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Two things worth pulling back from <code>old/calibration_final_robust_commented.py</code>: the T0 modes in <code>get_t0_setup</code> (<code>free</code>, <code>fixed_first_obs</code>, <code>narrow_first_obs</code>), which the teaching notebooks dropped and section 07 explains why they matter; and, for a later version, the parametric bootstrap and profile likelihood, already implemented there.</p>
+
+      <h3>Routes</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th class="mono">Method</th><th class="mono">Route</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">POST</td><td class="mono">/api/datasets/upload</td><td>Takes CSV or XLSX, returns a preview and a mapping guess.</td></tr>
+            <tr><td class="mono">POST</td><td class="mono">/api/datasets/mapping</td><td>Applies the mapping, normalises to <code>(t, V)</code>, validates.</td></tr>
+            <tr><td class="mono">POST</td><td class="mono">/api/calibration</td><td>Starts the growth fit on the control group, returns a <code>job_id</code>.</td></tr>
+            <tr><td class="mono">GET</td><td class="mono">/api/jobs/{id}</td><td>Status and progress, the polling target.</td></tr>
+            <tr><td class="mono">GET</td><td class="mono">/api/calibration/{id}</td><td>Ranking, metrics, parameters, diagnostics.</td></tr>
+            <tr><td class="mono">POST</td><td class="mono">/api/treatment</td><td>Fits the treatment term over the winning growth law.</td></tr>
+            <tr><td class="mono">POST</td><td class="mono">/api/experiments/simulate</td><td>Simulates protocols, synchronous.</td></tr>
+            <tr><td class="mono">GET</td><td class="mono">/api/export/{id}</td><td>ZIP with CSVs, PNGs and the report.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <pre><b>POST</b> /api/datasets/mapping
+{ "session_id":"s_7f3a", "source":"upload_91c2",
+  "mapping":{ "time":"day", "volume":"volume_mm3",
+              "subject":"mouse",   <i>// null means one subject per file</i>
+              "group":"group" },   <i>// null means one group per folder</i>
+  "units":{ "time":"days", "volume":"mm3" },
+  "roles":{ "control":"NOG_CTRL", "treated":["hIL2_NOG_CART"] },
+  "exclude_subjects":[] }
+<i>→ 200</i>
+{ "subjects":[ {"id":"m1","group":"NOG_CTRL","n_points":11,"ok":true},
+               {"id":"m2","group":"NOG_CTRL","n_points":3,
+                <b>"ok":false,"why":"only 3 points, minimum is 4"</b>} ],
+  "ready":false }
+
+<b>POST</b> /api/calibration
+{ "session_id":"s_7f3a", "group":"NOG_CTRL",
+  "models":["exponential","mendelsohn","logistic","bertalanffy",
+            "gompertz","linear","surface"],
+  "t0_strategy":"free",           <i>// free | fixed_first_obs | narrow_first_obs</i>
+  "t0_bound_fraction":[0.10,4.0], "n_starts":6, "opt_maxiter":250,
+  "selection_metric":"BIC", "count_t0_in_ic":true,
+  "validation":{"enabled":true,"top_k":3}, "seed":42 }
+<i>→ 202</i>  { "job_id":"j_10", "n_steps":42 }
+
+<b>GET</b> /api/jobs/j_10
+{ "status":"running", "step":17, "n_steps":42,
+  "stage":"fitting gompertz (start 3/6)", "result_id":null }
+
+<b>GET</b> /api/calibration/r_44
+{ "winner":"linear", <b>"tie_with":["logistic"],</b>   <i>// ΔBIC below 2</i>
+  "ranking":[
+    { "model":"linear", "params":{"r":12.5,"f":80.0},
+      "T0":[0.5,0.6,0.5,0.4,0.6,0.5],
+      "metrics":{"bic":812.40,"delta_bic":0.0,"akaike_weight":0.52,
+                 "rmse":38.1,"ccc":0.95},
+      "diagnostics":["T0_1 at bound"],
+      "curves":[{"subject":"m1","t_obs":[…],"V_obs":[…],
+                 "t_fit":[…],"V_fit":[…]}] },
+    { "model":"logistic", "metrics":{"bic":813.90,"delta_bic":1.50, …} } ] }</pre>
+
+      <pre><b>POST</b> /api/experiments/simulate
+{ "session_id":"s_7f3a",
+  "growth":{"model":"linear","params":{"r":12.5,"f":80.0}},
+  "treatment":{"model":"ED","params":{"a":0.62,"b":0.41}},
+  "T0":0.8, "horizon_days":60, "n_points":240,
+  "scenarios":[
+    {"name":"current protocol","dose_times":[7],       "doses":[1.0]},
+    {"name":"3 weekly doses",  "dose_times":[7,14,21], "doses":[1.0,1.0,1.0]} ] }
+<i>→ 200</i>
+{ "t":[…], <b>"control":[…],</b>            <i>// treatment_model="none", same T0</i>
+  "scenarios":[
+    {"name":"current protocol","V":[…],"V_final":412.7,"tgi_pct":31.2},
+    {"name":"3 weekly doses",  "V":[…],"V_final":118.4,"tgi_pct":80.3} ] }</pre>
+      <p>The <code>control</code> curve always comes back with the response, since it is the reference for every TGI and should not be computed in the frontend. <code>tgi_pct = 100 · (1 − V_final / V_final_control)</code>. The session carries the winning growth law, and the server rejects a <code>growth</code> that contradicts it, so tab 5 can never simulate a model tab 3 did not pin.</p>
+    </section>
+
+    <!-- ============ 07 ============ -->
+    <section class="sec" id="s7">
+      <h2><span class="num">07</span>Pitfalls and settled decisions</h2>
+
+      <div class="note">
+        <b>T0 sits on its bound for nearly every mouse</b>
+        <p>Every digitised trajectory starts at the same floor value, which is an artefact of reading points off a graph rather than a measurement, and the bounds are <code>[0.10·v₀, 4·v₀]</code>. So most fitted <code>T0</code> values end up sitting on a bound, which means the optimiser wanted to go further and could not.</p>
+        <p>So the app puts the T0 mode and its bound fractions in tab 2, and shows the boundary warnings in tab 3, instead of burying them in a text file.</p>
+      </div>
+      <div class="note">
+        <b>The winner changes with the settings</b>
+        <p>The same group can pick a different law depending on the T0 bounds, and the gap to the runner-up is often under 2 BIC units. An interface that announces one best model and says nothing about the rest would be misleading.</p>
+      </div>
+      <div class="note">
+        <b>Multistart is not optional</b>
+        <p>Several of the laws have local minima, so with too few starts the result changes between runs and the winner can flip. That is why the seed is a visible field, it goes into the provenance record, and the fast preset says out loud that it is for exploring rather than for a final answer.</p>
+      </div>
+
+      <h3>Settled decisions</h3>
+      <ul class="closed">
+        <li><span>Python backend</span><span>The SciPy core is already validated. Rewriting the ODEs in another language risks diverging from results already reported, with nothing gained.</span></li>
+        <li><span>No frontend framework</span><span>ES modules and plain CSS. A local offline app does not need a build chain.</span></li>
+        <li><span>Local and offline</span><span>Unpublished data stay on the machine, and nothing is fetched at runtime. The charting library is vendored.</span></li>
+        <li><span>Growth before treatment</span><span>G(T) comes from the control group and enters the treated fit frozen. Fitting both together makes the problem ill-posed.</span></li>
+        <li><span>The notebooks stay</span><span>They are not deleted. They remain as teaching material, running on the same extracted core.</span></li>
+      </ul>
+
+      <h3>Out of scope for now</h3>
+      <p>Written down so it does not creep in: parameter sweeps with sliders, automatic outcomes such as time to doubling or survival, sample size calculation, and uncertainty bands from a parametric bootstrap. That last one is the best candidate for the next version and already has a working implementation under <code>old/</code>.</p>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
