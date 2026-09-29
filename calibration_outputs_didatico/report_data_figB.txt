@@ -1,0 +1,72 @@
+==========================================================================================
+RESULTADOS DO GRUPO: data_figB
+==========================================================================================
+
+ARQUIVOS
+  Camundongo 1: data_frosberg19_fig3B_NOG_CTRL_1.csv | n=15 | t∈[0.79,51.24] | V∈[2.1,600.5]
+  Camundongo 2: data_frosberg19_fig3B_NOG_CTRL_2.csv | n=15 | t∈[0.79,51.24] | V∈[2.1,573.2]
+
+COMPARAÇÃO DE MODELOS (ordenado por BIC)
+      model      BIC      AIC     AICc    LogLik    RMSE     MAE  WAPE (%)  sMAPE (%)    PCC    CCC    ICC  CV_RMSE   CV_MAE                                                                        diagnostics    ΔBIC   ΔAICc
+bertalanffy 321.5460 315.9412 317.5412 -153.9706 40.9844 34.8127   15.5676    31.5321 0.9704 0.9674 0.9684 140.3243 139.6417                                                                                     0.0000  0.0000
+ mendelsohn 324.0943 318.4895 320.0895 -155.2448 42.5191 36.1344   16.1587    35.9190 0.9753 0.9666 0.9675  54.7881  53.0609 r no limite [0, 0.5] | T0_1 no limite [0.21, 8.399] | T0_2 no limite [0.21, 8.399]  2.5483  2.5483
+     linear 324.6151 319.0103 320.6103 -155.5052 43.1423 35.7967   16.0077    29.8895 0.9630 0.9624 0.9636 151.2816 150.3626                                                                                     3.0691  3.0691
+    surface 329.8310 324.2262 325.8262 -158.1131 46.4616 38.0564   17.0182    39.8378 0.9756 0.9614 0.9624      NaN      NaN                                                                                     8.2849  8.2849
+   gompertz 331.1075 324.1015 326.6015 -157.0508 45.3811 38.8457   17.3711    36.6325 0.9660 0.9608 0.9620      NaN      NaN                                                                                     9.5615  9.0603
+   logistic 341.7149 336.1101 337.7101 -164.0550 56.9278 48.2878   21.5935    48.7851 0.9567 0.9416 0.9431      NaN      NaN                                       resíduos não-normais (Shapiro-Wilk p=0.0448) 20.1688 20.1688
+exponential 367.6062 363.4027 364.3257 -178.7013 82.7528 72.5483   32.4424    70.6564 0.9577 0.8936 0.8952      NaN      NaN                                                                                    46.0602 46.7845
+
+MELHOR MODELO POR BIC: bertalanffy
+
+PARÂMETROS E DIAGNÓSTICOS
+
+[BERTALANFFY]  objetivo=1679.72
+         r = 0.566208
+     alpha = 0.0387502
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
+  PREDIÇÃO último ponto: RMSE=140.3 MAE=139.6 WAPE=23.79% CCC=-0.000
+    Camundongo 1: t=51.2 real=600.5 previsto=447.1 erro=153.5
+    Camundongo 2: t=51.2 real=573.2 previsto=447.4 erro=125.8
+
+[MENDELSOHN]  objetivo=1807.88
+         r = 0.5
+         b = 0.601216
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
+  PREDIÇÃO último ponto: RMSE=54.79 MAE=53.06 WAPE=9.04% CCC=0.000
+    Camundongo 1: t=51.2 real=600.5 previsto=533.8 erro=66.71
+    Camundongo 2: t=51.2 real=573.2 previsto=533.8 erro=39.41
+
+[LINEAR]  objetivo=1861.26
+         r = 14.6797
+         f = 61.4934
+  T0_camundongo_1 = 8.23595
+  T0_camundongo_2 = 8.39895
+  PREDIÇÃO último ponto: RMSE=151.3 MAE=150.4 WAPE=25.62% CCC=-0.007
+    Camundongo 1: t=51.2 real=600.5 previsto=433.5 erro=167
+    Camundongo 2: t=51.2 real=573.2 previsto=439.5 erro=133.7
+
+[SURFACE]  objetivo=2158.68
+         r = 0.371817
+         f = 1e-06
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
+
+[GOMPERTZ]  objetivo=2059.45
+         r = 0.03697
+         K = 1102.61
+         c = 0
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
+
+[LOGISTIC]  objetivo=3240.77
+         r = 0.11791
+         K = 606.53
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
+
+[EXPONENTIAL]  objetivo=6848.03
+         r = 0.0861161
+  T0_camundongo_1 = 8.39895
+  T0_camundongo_2 = 8.39895
