@@ -9,14 +9,14 @@ ARQUIVOS
   Camundongo 4: data_frosberg19_fig3D_NOG_CTRL_4.csv | n=26 | t∈[13.09,190.94] | V∈[0.06103,40.98]
 
 COMPARAÇÃO DE MODELOS (ordenado por BIC)
-      model      BIC      AIC     AICc    LogLik    RMSE     MAE  WAPE (%)  sMAPE (%)    PCC    CCC    ICC  CV_RMSE  CV_MAE                                                                                                                                                                              diagnostics    ΔBIC   ΔAICc
-     linear 871.0444 855.3537 856.2473 -421.6768 15.5708 12.0532   35.8586    92.6597 0.9267 0.9100 0.9107  30.4751 25.7771                                                       f no limite [1e-06, 3468] | T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97]  0.0000  0.0000
-   logistic 876.6336 860.9429 861.8365 -424.4714 15.8717 12.6150   37.5299    99.3640 0.9301 0.9082 0.9088  32.8294 29.1295                                                       K no limite [175.1, 3468] | T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97]  5.5892  5.5892
-   gompertz 877.2404 858.9345 860.1388 -422.4673 15.6617 12.2321   36.3910    94.8089 0.9274 0.9093 0.9099  31.1582 26.9508                                                                                   T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97]  6.1960  3.8915
- mendelsohn 887.3910 871.7003 872.5939 -429.8501 16.9162 12.2815   36.5378    86.8069 0.9094 0.8920 0.8928      NaN     NaN                                               T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] | T0_4 no limite [0.006103, 0.2441] 16.3466 16.3466
-bertalanffy 907.9063 892.2156 893.1092 -440.1078 18.8856 13.4484   40.0093    72.7973 0.8550 0.8478 0.8491      NaN     NaN r no limite [0, 5] | alpha no limite [0, 1] | T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] | T0_4 no limite [0.006103, 0.2441] 36.8619 36.8619
-exponential 928.7726 915.6970 916.3286 -452.8485 20.0063 16.2708   48.4061   115.4098 0.9104 0.8594 0.8601      NaN     NaN                                                                                                                       T0_1 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] 57.7282 60.0813
-    surface 932.2825 916.5918 917.4854 -452.2959 19.9112 16.2023   48.2022   115.1482 0.9113 0.8608 0.8616      NaN     NaN                                         f no limite [1e-06, 3468] | T0_1 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] | f muito grande; modelo vira quase não-saturante 61.2381 61.2381
+      model      BIC      AIC     AICc    LogLik    RMSE     MAE  WAPE (%)  sMAPE (%)    PCC    CCC    ICC  CV_RMSE  CV_MAE                                                                                                                                                                                 diagnostics    ΔBIC   ΔAICc
+     linear 871.0444 855.3537 856.2473 -421.6768 15.5708 12.0532   35.8586    92.6597 0.9267 0.9100 0.9107  30.4751 25.7771                                                                                                                                              resíduos não-normais (Shapiro-Wilk p=1.45e-07)  0.0000  0.0000
+   logistic 876.6336 860.9429 861.8365 -424.4714 15.8717 12.6150   37.5299    99.3640 0.9301 0.9082 0.9088  32.8294 29.1295                                                                                                                                              resíduos não-normais (Shapiro-Wilk p=2.25e-08)  5.5892  5.5892
+   gompertz 877.2404 858.9345 860.1388 -422.4673 15.6617 12.2321   36.3910    94.8089 0.9274 0.9093 0.9099  31.1582 26.9508                                                                                                                                               resíduos não-normais (Shapiro-Wilk p=8.6e-08)  6.1960  3.8915
+ mendelsohn 887.3910 871.7003 872.5939 -429.8501 16.9162 12.2815   36.5378    86.8069 0.9094 0.8920 0.8928      NaN     NaN T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] | T0_4 no limite [0.006103, 0.2441] | resíduos não-normais (Shapiro-Wilk p=3.79e-09) 16.3466 16.3466
+bertalanffy 907.9063 892.2156 893.1092 -440.1078 18.8856 13.4484   40.0093    72.7973 0.8550 0.8478 0.8491      NaN     NaN                                                                                                                                              resíduos não-normais (Shapiro-Wilk p=2.48e-05) 36.8619 36.8619
+exponential 928.7726 915.6970 916.3286 -452.8485 20.0063 16.2708   48.4061   115.4098 0.9104 0.8594 0.8601      NaN     NaN                                                                                                                                              resíduos não-normais (Shapiro-Wilk p=2.11e-07) 57.7282 60.0813
+    surface 932.2825 916.5918 917.4854 -452.2959 19.9112 16.2023   48.2022   115.1482 0.9113 0.8608 0.8616      NaN     NaN                                                                                                                                              resíduos não-normais (Shapiro-Wilk p=2.12e-07) 61.2381 61.2381
 
 MELHOR MODELO POR BIC: linear
 
@@ -29,10 +29,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.244133
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.0250362
-    - f no limite [1e-06, 3468]
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_2 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
   PREDIÇÃO último ponto: RMSE=30.48 MAE=25.78 WAPE=25.55% CCC=0.739
     Camundongo 1: t=177.0 real=120.2 previsto=120.6 erro=0.4407
     Camundongo 2: t=190.7 real=173.4 previsto=147.4 erro=26.03
@@ -46,10 +42,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.244133
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.0316793
-    - K no limite [175.1, 3468]
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_2 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
   PREDIÇÃO último ponto: RMSE=32.83 MAE=29.13 WAPE=28.88% CCC=0.696
     Camundongo 1: t=177.0 real=120.2 previsto=125.9 erro=5.689
     Camundongo 2: t=190.7 real=173.4 previsto=144.9 erro=28.53
@@ -64,9 +56,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.244133
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.0267315
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_2 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
   PREDIÇÃO último ponto: RMSE=31.16 MAE=26.95 WAPE=26.72% CCC=0.730
     Camundongo 1: t=177.0 real=120.2 previsto=123.2 erro=3.069
     Camundongo 2: t=190.7 real=173.4 previsto=147.7 erro=25.7
@@ -80,10 +69,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.244133
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.00610333
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_2 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
-    - T0_4 no limite [0.006103, 0.2441]
 
 [BERTALANFFY]  objetivo=356.667
          r = 0.0730781
@@ -92,12 +77,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.244133
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.00610333
-    - r no limite [0, 5]
-    - alpha no limite [0, 1]
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_2 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
-    - T0_4 no limite [0.006103, 0.2441]
 
 [EXPONENTIAL]  objetivo=400.252
          r = 0.0387964
@@ -105,8 +84,6 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.215337
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.0647328
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
 
 [SURFACE]  objetivo=396.456
          r = 0.586665
@@ -115,7 +92,3 @@ PARÂMETROS E DIAGNÓSTICOS
   T0_camundongo_2 = 0.216876
   T0_camundongo_3 = 0.0992495
   T0_camundongo_4 = 0.0643809
-    - f no limite [1e-06, 3468]
-    - T0_1 no limite [0.006103, 0.2441]
-    - T0_3 no limite [0.09925, 3.97]
-    - f muito grande; modelo vira quase não-saturante
