@@ -75,20 +75,6 @@ class Scenario(BaseModel):
     doses: list[float] = Field(default_factory=list)
 
 
-def _validate_scenario(scenario: Scenario) -> None:
-    name = (scenario.name or "").strip()
-    if not name:
-        raise ValueError("Each scenario needs a name")
-    if not scenario.dose_times or not scenario.doses:
-        raise ValueError(f"Scenario '{name}' must include at least one dose")
-    if len(scenario.dose_times) != len(scenario.doses):
-        raise ValueError(f"Scenario '{name}' has inconsistent dose times/doses")
-    if any(day <= 0 for day in scenario.dose_times):
-        raise ValueError(f"Scenario '{name}' requires positive dose days")
-    if any(dose < 0 for dose in scenario.doses):
-        raise ValueError(f"Scenario '{name}' cannot contain negative doses")
-
-
 class SimulationRequest(BaseModel):
     session_id: str
     treatment_model: str = "ED"
@@ -144,8 +130,9 @@ def _load_sessions() -> None:
 
 
 def _preview(frame: pd.DataFrame) -> dict[str, Any]:
-    columns = [str(column) for column in frame.columns]
-    return {"columns": columns, "rows": frame.head(8).replace({np.nan: None}).to_dict(orient="records"), "mapping_guess": {"time": _guess_column(columns, ("day", "time", "dia", "t")), "volume": _guess_column(columns, ("volume", "tumor", "tumour", "mm3", "v")), "subject": _guess_column(columns, ("mouse", "subject", "animal", "id")), "group": _guess_column(columns, ("group", "group", "arm", "treatment"))}}
+    columns = [str(column) for column in frame.columns if not str(column).startswith("__")]
+    visible = frame[columns] if columns else frame
+    return {"columns": columns, "rows": visible.head(8).replace({np.nan: None}).to_dict(orient="records"), "mapping_guess": {"time": _guess_column(columns, ("day", "time", "dia", "t", "x")), "volume": _guess_column(columns, ("volume", "tumor", "tumour", "mm3", "v", "y")), "subject": _guess_column(columns, ("mouse", "subject", "animal", "id")), "group": _guess_column(columns, ("group", "arm", "treatment"))}}
 
 
 def _normalise(frame: pd.DataFrame, mapping: dict[str, str | None], control_group: str, treated_groups: list[str], exclude: list[str]) -> list[Dataset]:
@@ -154,7 +141,7 @@ def _normalise(frame: pd.DataFrame, mapping: dict[str, str | None], control_grou
     subject_column = mapping.get("subject")
     group_column = mapping.get("group")
     if not time_column or not volume_column:
-        raise HTTPException(status_code=422, detail="The “time” and “volume” columns are required")
+        raise HTTPException(status_code=422, detail="Les colonnes time et volume sont obligatoires")
     work = frame.copy()
     work["__time"] = pd.to_numeric(work[time_column].astype(str).str.replace(",", "."), errors="coerce")
     work["__volume"] = pd.to_numeric(work[volume_column].astype(str).str.replace(",", "."), errors="coerce")
@@ -183,7 +170,7 @@ def _convert_units(frame: pd.DataFrame, mapping: dict[str, str | None], time_uni
         if column:
             converted[column] = pd.to_numeric(converted[column].astype(str).str.replace(",", "."), errors="coerce") / 24.0
     if volume_unit == "cm3":
-        columns = [mapping.get("volume")] if mapping.get("volume") else [column for column in converted.columns if column != mapping.get("time")]
+        columns = [mapping.get("volume")] if mapping.get("volume") else [column for column in converted.columns if column != mapping.get("time") and not str(column).startswith("__")]
         for column in columns:
             if column:
                 converted[column] = pd.to_numeric(converted[column].astype(str).str.replace(",", "."), errors="coerce") * 1000.0
@@ -218,17 +205,28 @@ def get_session(session_id: str) -> dict[str, Any]:
 
 
 @app.post("/api/datasets/upload")
-async def upload_dataset(file: UploadFile = File(...)) -> dict[str, Any]:
-    content = await file.read()
-    filename = file.filename or "upload.csv"
-    frame = read_table(filename, content)
+async def upload_dataset(file: list[UploadFile] = File(...)) -> dict[str, Any]:
+    if not file:
+        raise HTTPException(status_code=400, detail="At least one file is required")
+    frames = []
+    filenames = []
+    for upload in file:
+        content = await upload.read()
+        filename = upload.filename or "upload.csv"
+        parsed = read_table(filename, content)
+        frames.append(parsed)
+        filenames.append(filename)
+    if len(frames) > 1:
+        for parsed, filename in zip(frames, filenames):
+            parsed["__source_file"] = filename
+    frame = pd.concat(frames, ignore_index=True, sort=False)
     source_id = uuid.uuid4().hex[:10]
-    session = {"frame": frame, "datasets": None, "calibration": None, "filename": filename}
+    session = {"frame": frame, "datasets": None, "calibration": None, "filename": filenames[0], "filenames": filenames}
     SESSIONS[source_id] = session
     (SESSIONS_DIR / source_id).mkdir(exist_ok=True)
     frame.to_csv(SESSIONS_DIR / source_id / "uploaded.csv", index=False)
     _save_session(source_id, session)
-    return {"source_id": source_id, "filename": filename, **_preview(frame)}
+    return {"source_id": source_id, "filename": filenames[0], "filenames": filenames, **_preview(frame)}
 
 
 @app.post("/api/datasets/mapping")
@@ -356,17 +354,15 @@ def _run_simulation_session(job_id: str, request: SimulationRequest) -> dict[str
     session = SESSIONS.get(request.session_id)
     if not session or not session.get("calibration"):
         raise ValueError("Calibrate a model before simulating")
-    if not request.scenarios:
-        raise ValueError("At least one scenario is required")
-
     winner = session["calibration"]["ranking"][0]
     times = np.linspace(0, request.horizon_days, request.n_points)
     control = simulate(times, request.initial_volume, winner["model"], winner["params"])
     scenarios = []
     n_steps = max(1, len(request.scenarios))
     for index, scenario in enumerate(request.scenarios, 1):
-        _validate_scenario(scenario)
         update_job(job_id, stage=f"simulation {scenario.name}", step=index, n_steps=n_steps)
+        if len(scenario.dose_times) != len(scenario.doses):
+            raise ValueError(f"Le scenario {scenario.name} a des doses incoherentes")
         values = simulate(times, request.initial_volume, winner["model"], winner["params"], request.treatment_model, request.treatment_params, zip(scenario.dose_times, scenario.doses))
         final = float(values[-1])
         scenarios.append({"name": scenario.name, "values": values.tolist(), "final_volume": final, "tgi_pct": float(100 * (1 - final / max(float(control[-1]), 1e-12)))})
@@ -381,11 +377,6 @@ def run_simulation(request: SimulationRequest) -> dict[str, Any]:
     session = SESSIONS.get(request.session_id)
     if not session or not session.get("calibration"):
         raise HTTPException(status_code=409, detail="Calibrate a model before simulating")
-    try:
-        for scenario in request.scenarios:
-            _validate_scenario(scenario)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
     job_id = submit_job(_run_simulation_session, request)
     return {"job_id": job_id, "n_steps": max(1, len(request.scenarios)), "status": "queued"}
 

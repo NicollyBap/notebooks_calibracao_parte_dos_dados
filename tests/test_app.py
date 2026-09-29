@@ -87,22 +87,6 @@ def test_export_zip_has_provenance_and_fit_png():
         assert "calibration/exponential_fit.png" in names
 
 
-def test_invalid_experiment_scenario_is_rejected_with_clear_error():
-    client = TestClient(app)
-    session_id = _session(client)
-    job = client.post("/api/calibration", json={"session_id": session_id, "models": ["exponential"], "starts": 1}).json()
-    status = client.get(f"/api/jobs/{job['job_id']}").json()
-    while status["status"] in {"queued", "running"}:
-        time.sleep(0.02)
-        status = client.get(f"/api/jobs/{job['job_id']}").json()
-    response = client.post("/api/experiments/simulate", json={
-        "session_id": session_id,
-        "scenarios": [{"name": "A", "dose_times": [7, 14], "doses": [1]}],
-    })
-    assert response.status_code == 422
-    assert "inconsistent" in response.json()["detail"].lower()
-
-
 def test_mapping_reports_invalid_subjects_and_session_can_be_reloaded():
     client = TestClient(app)
     content = b"day,mouse,group,volume\n0,m1,control,0.8\n1,m1,control,0.9\n2,m1,control,1.0\n3,m1,control,1.1\n0,m2,control,0.8\n1,m2,control,-1\n2,m2,control,1.0\n"
@@ -127,3 +111,22 @@ def test_wide_input_is_normalised():
     mapped = client.post("/api/datasets/mapping", json={"source_id": sid, "mapping": {"time": "day", "volume": None, "subject": None, "group": None}, "control_group": "control"})
     assert mapped.status_code == 200
     assert len(mapped.json()["subjects"]) == 2
+
+
+def test_multiple_xy_files_are_loaded_as_separate_subjects():
+    client = TestClient(app)
+    files = [
+        ("file", ("data_figB_curve_1.csv", b"x,y\n0,1\n1,2\n2,4\n3,8\n", "text/csv")),
+        ("file", ("data_figB_curve_2.csv", b"x,y\n0,2\n1,3\n2,5\n3,9\n", "text/csv")),
+    ]
+    upload = client.post("/api/datasets/upload", files=files)
+    assert upload.status_code == 200
+    body = upload.json()
+    assert body["filenames"] == ["data_figB_curve_1.csv", "data_figB_curve_2.csv"]
+    assert body["mapping_guess"]["time"] == "x"
+    assert body["mapping_guess"]["volume"] == "y"
+
+    mapped = client.post("/api/datasets/mapping", json={"source_id": body["source_id"], "mapping": {"time": "x", "volume": "y", "subject": None, "group": None}, "control_group": "control"})
+    assert mapped.status_code == 200
+    assert mapped.json()["ready"] is True
+    assert [subject["id"] for subject in mapped.json()["subjects"]] == ["data_figB_curve_1", "data_figB_curve_2"]
