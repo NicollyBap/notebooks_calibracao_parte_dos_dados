@@ -19,25 +19,41 @@ def _number_series(values: pd.Series) -> pd.Series:
     return pd.to_numeric(values.astype(str).str.replace("\u00a0", "", regex=False).str.replace(",", ".", regex=False), errors="coerce")
 
 
+def _source_label(value: object) -> str:
+    return Path(str(value)).stem or "file"
+
+
 def normalise_table_report(frame: pd.DataFrame, mapping: dict[str, str | None], default_group="control", filename="upload") -> tuple[list[Dataset], list[dict[str, object]]]:
     time_column, volume_column = mapping.get("time"), mapping.get("volume")
     if not time_column:
-        raise ValueError("la columns time est obligatoire")
+        raise ValueError("la colonne time est obligatoire")
     subject_column, group_column = mapping.get("subject"), mapping.get("group")
     if volume_column is None and subject_column is not None:
-        raise ValueError("un format long doit fournir une columns volume")
+        raise ValueError("un format long doit fournir une colonne volume")
+    source_column = "__source_file" if "__source_file" in frame.columns else None
     if subject_column is None:
         work = frame.copy()
-        candidates = [column for column in frame.columns if column != time_column and column != volume_column]
-        if candidates:
+        candidates = [column for column in frame.columns if column not in {time_column, volume_column, source_column}]
+        if volume_column is not None and source_column:
+            rows = []
+            for source, source_rows in frame.groupby(source_column, sort=False):
+                rows.append(pd.DataFrame({"__time": _number_series(source_rows[time_column]), "__volume": _number_series(source_rows[volume_column]), "__subject": _source_label(source), "__group": default_group}))
+            work = pd.concat(rows, ignore_index=True)
+        elif candidates:
             rows = []
             for column in candidates:
-                rows.append(pd.DataFrame({"__time": _number_series(frame[time_column]), "__volume": _number_series(frame[column]), "__subject": str(column), "__group": default_group}))
+                subject = str(column)
+                if source_column:
+                    source = frame[source_column].map(_source_label)
+                    subject = source + ":" + subject
+                rows.append(pd.DataFrame({"__time": _number_series(frame[time_column]), "__volume": _number_series(frame[column]), "__subject": subject, "__group": default_group}))
             work = pd.concat(rows, ignore_index=True)
         else:
-            work["__time"] = _number_series(work[time_column]); work["__volume"] = _number_series(work[volume_column]); work["__subject"] = filename; work["__group"] = default_group
+            work["__time"] = _number_series(work[time_column]); work["__volume"] = _number_series(work[volume_column]); work["__subject"] = _source_label(filename) if source_column else filename; work["__group"] = default_group
     else:
         work = frame.copy(); work["__time"] = _number_series(work[time_column]); work["__volume"] = _number_series(work[volume_column]); work["__subject"] = work[subject_column].astype(str); work["__group"] = work[group_column].astype(str) if group_column else default_group
+        if source_column:
+            work["__subject"] = work[source_column].map(_source_label) + ":" + work["__subject"]
     datasets = []
     validation = []
     for subject, subject_rows in work.groupby("__subject", sort=False):
@@ -51,7 +67,10 @@ def normalise_table_report(frame: pd.DataFrame, mapping: dict[str, str | None], 
             reasons.append("duplicate times")
         if (valid_rows["__volume"] <= 0).any():
             reasons.append("volume is not positive")
-        item = {"id": str(subject), "group": str(subject_rows["__group"].iloc[0]), "n_points": int(len(valid_rows)), "ok": not reasons}
+        item = {"id": str(subject), "group": str(subject_rows["__group"].iloc[0]), "n_points": int(len(valid_rows)), "ok": not reasons,
+                # Raw points so the Data tab can draw them even for a subject that fails validation.
+                "t": [round(value, 6) for value in valid_rows["__time"].tolist()],
+                "v": [round(value, 6) for value in valid_rows["__volume"].tolist()]}
         if reasons:
             item["why"] = reasons
         validation.append(item)
