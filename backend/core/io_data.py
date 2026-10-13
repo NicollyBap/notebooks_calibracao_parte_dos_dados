@@ -1,6 +1,8 @@
 """Input normalisation for CSV, XLSX, long and wide tables."""
 from __future__ import annotations
 import io
+import os
+import re
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -9,10 +11,41 @@ from .fitting import Dataset
 
 def read_table(filename: str, content: bytes) -> pd.DataFrame:
     if filename.lower().endswith((".xlsx", ".xls")):
-        return pd.read_excel(io.BytesIO(content))
-    sample = content[:4096].decode("utf-8-sig", errors="replace")
-    separator = ";" if sample.count(";") > sample.count(",") else ("\t" if sample.count("\t") > sample.count(",") else ",")
-    return pd.read_csv(io.BytesIO(content), sep=separator, comment="#")
+        frame = pd.read_excel(io.BytesIO(content))
+    else:
+        sample = content[:4096].decode("utf-8-sig")
+        separator = ";" if sample.count(";") > sample.count(",") else ("\t" if sample.count("\t") > sample.count(",") else ",")
+        frame = pd.read_csv(io.BytesIO(content), sep=separator, comment="#")
+    # "x, y" must give the columns "x" and "y", not "x" and " y".
+    frame.columns = [str(column).strip().lstrip("\ufeff") for column in frame.columns]
+    return frame
+
+
+def harmonise_headers(frames: list[pd.DataFrame], names: list[str]) -> tuple[list[pd.DataFrame], list[str]]:
+    """Make column names comparable across several uploaded files.
+
+    Spelling differences that only involve case or surrounding spaces ("x" vs
+    "X", " y" vs "y") are unified to the first spelling seen. Without this,
+    pandas treats them as different columns when the files are concatenated and
+    the subject whose file used the other spelling ends up with no data at all.
+    Returns the renamed frames and a list of human-readable warnings for files
+    whose columns still differ from the first file after unification.
+    """
+    spelling: dict[str, str] = {}
+    result: list[pd.DataFrame] = []
+    warnings: list[str] = []
+    for frame, name in zip(frames, names):
+        mapping = {}
+        for column in frame.columns:
+            key = str(column).strip().lower()
+            mapping[column] = spelling.setdefault(key, str(column).strip())
+        renamed = frame.rename(columns=mapping)
+        result.append(renamed if not renamed.columns.duplicated().any() else frame)
+    reference = list(result[0].columns) if result else []
+    for frame, name in zip(result[1:], names[1:]):
+        if set(frame.columns) != set(reference):
+            warnings.append(f"{name}: columns {list(frame.columns)} differ from the first file {reference}; its rows may be ignored.")
+    return result, warnings
 
 
 def _number_series(values: pd.Series) -> pd.Series:
@@ -23,10 +56,40 @@ def _source_label(value: object) -> str:
     return Path(str(value)).stem or "file"
 
 
+_CONTROL_WORDS = re.compile(r"(ctrl|control|ctl|vehicle|placebo)", re.IGNORECASE)
+_REPLICATE_SUFFIX = re.compile(r"[\s_\-]*\d+$")
+
+
+def infer_groups_from_files(sources: list[object], default_group: str) -> dict[object, str]:
+    """Guess one group per file from its name when each file is one subject.
+
+    Only active when at least one file name looks like a control (CTRL,
+    control, vehicle...). Control files go to `default_group`; the others get
+    their name without the trailing replicate number (..._CART_3 -> ..._CART),
+    so a folder mixing controls and treated animals is not calibrated as one
+    big control group. If no name looks like a control, everything stays in
+    `default_group` as before.
+    """
+    labels = {source: _source_label(source) for source in sources}
+    if not any(_CONTROL_WORDS.search(label) for label in labels.values()):
+        return {source: default_group for source in sources}
+    # Drop the prefix shared by every file name (e.g. "data_study_fig3D_") so group names stay short.
+    prefix = os.path.commonprefix(list(labels.values()))
+    prefix = prefix[: prefix.rfind("_") + 1] if "_" in prefix else ""
+
+    def group_of(label: str) -> str:
+        if _CONTROL_WORDS.search(label):
+            return default_group
+        name = _REPLICATE_SUFFIX.sub("", label[len(prefix):])
+        return name or _REPLICATE_SUFFIX.sub("", label) or label
+
+    return {source: group_of(label) for source, label in labels.items()}
+
+
 def normalise_table_report(frame: pd.DataFrame, mapping: dict[str, str | None], default_group="control", filename="upload") -> tuple[list[Dataset], list[dict[str, object]]]:
     time_column, volume_column = mapping.get("time"), mapping.get("volume")
     if not time_column:
-        raise ValueError("la colonne time est obligatoire")
+        raise ValueError("the time column is required")
     subject_column, group_column = mapping.get("subject"), mapping.get("group")
     if volume_column is None and subject_column is not None:
         raise ValueError("un format long doit fournir une colonne volume")
@@ -36,8 +99,9 @@ def normalise_table_report(frame: pd.DataFrame, mapping: dict[str, str | None], 
         candidates = [column for column in frame.columns if column not in {time_column, volume_column, source_column}]
         if volume_column is not None and source_column:
             rows = []
+            file_groups = infer_groups_from_files(list(frame[source_column].unique()), default_group)
             for source, source_rows in frame.groupby(source_column, sort=False):
-                rows.append(pd.DataFrame({"__time": _number_series(source_rows[time_column]), "__volume": _number_series(source_rows[volume_column]), "__subject": _source_label(source), "__group": default_group}))
+                rows.append(pd.DataFrame({"__time": _number_series(source_rows[time_column]), "__volume": _number_series(source_rows[volume_column]), "__subject": _source_label(source), "__group": file_groups[source]}))
             work = pd.concat(rows, ignore_index=True)
         elif candidates:
             rows = []

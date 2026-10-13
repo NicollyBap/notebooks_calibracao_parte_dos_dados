@@ -407,7 +407,7 @@ sum the squared error between predicted and observed values. The optimizer
 
 **Multistart.** The optimizer can get stuck in a bad "valley" (a local minimum).
 To avoid this, we try several starting points (`MULTISTART_N_STARTS`) and keep
-the best one. ⚡ *This is the main speed knob: fewer starting points = faster.*
+the best one. *This is the main speed knob: fewer starting points = faster.*
 
 def clip_to_bounds(x, bounds):
     '''Clips each entry of x into its corresponding (lo, hi) bound.'''
@@ -682,7 +682,7 @@ This measures **predictive capability** (one-step-ahead extrapolation), not just
 goodness of fit. This mechanism is **independent of the model and of the group**:
 it works the same way for control, CAR-T, or any other data — just point it at the data.
 
-⚡ **Speed:** instead of recalibrating from scratch, we reuse the parameters
+**Speed:** instead of recalibrating from scratch, we reuse the parameters
 already found in the full fit as the initial guess (`x0_override`) and use
 few `n_starts`. Same result, much faster. And we only validate the
 `VALIDATION_TOP_K` best models.

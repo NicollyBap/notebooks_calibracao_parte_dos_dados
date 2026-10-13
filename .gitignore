@@ -1,6 +1,14 @@
+# Local environment and caches
 .venv/
 __pycache__/
-*.py[cod]
+*.pyc
 .pytest_cache/
+
+# Data created while using the app (each session = one folder)
 sessions/
+
+# Editor / OS files
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db

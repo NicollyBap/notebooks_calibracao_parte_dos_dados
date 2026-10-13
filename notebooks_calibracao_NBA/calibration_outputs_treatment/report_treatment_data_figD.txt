@@ -2,8 +2,8 @@
 RESULTS FOR TREATED GROUP: data_figD
 ==========================================================================================
 
-Fixed growth term: bertalanffy {'r': 0.566206, 'alpha': 0.0387499}
-Schedule: days=[7.0] doses=[1.0]
+Fixed growth term: linear {'r': 2.49816, 'f': 14.2442}
+Schedule: days=[12.0] doses=[1.0]
 
 FILES
   Mouse 1: data_frosberg19_fig3D_hIL2_NOG_CART_1.csv | n=25 | t∈[12.92,184.06] | V∈[0.8271,79.82]
@@ -12,110 +12,104 @@ FILES
   Mouse 4: data_frosberg19_fig3D_hIL2_NOG_CART_4.csv | n=20 | t∈[12.92,150.15] | V∈[0.994,10.75]
 
 TREATMENT FUNCTION COMPARISON (sorted by BIC)
-  model       BIC       AIC      AICc    LogLik      RMSE      MAE  WAPE (%)  sMAPE (%)     PCC     CCC     ICC  CV_RMSE  CV_MAE                                                                                                                                                                    diagnostics     ΔBIC    ΔAICc
-     ED  782.2632  767.3314  768.3558 -377.6657   16.8519  12.6147   73.4947    85.3367  0.3340  0.1896  0.1913  20.1147 20.1096                              b at bound [0, 5] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976]   0.0000   0.0000
-     LS  782.2632  767.3314  768.3558 -377.6657   16.8519  12.6147   73.4947    85.3367  0.3340  0.1896  0.1913  20.1147 20.1096                              b at bound [0, 1] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976]   0.0000   0.0000
-     MM  782.2632  767.3314  768.3558 -377.6657   16.8519  12.6147   73.4947    85.3367  0.3340  0.1896  0.1913  20.1147 20.1096                                                  T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976]   0.0000   0.0000
-     CD  782.2635  767.3317  768.3561 -377.6659   16.8519  12.6148   73.4952    85.3289  0.3340  0.1896  0.1913      NaN     NaN                              b at bound [0, 8] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976]   0.0003   0.0003
-AccelED  784.5040  769.5722  770.5966 -378.7861   17.0654  13.0859   76.2400    86.8642  0.3013  0.1432  0.1446      NaN     NaN                                                                                                                                                              b at bound [0, 5]   2.2408   2.2408
-   dePR  786.7518  769.3314  770.7141 -377.6657   16.8519  12.6147   73.4947    85.3367  0.3340  0.1896  0.1913      NaN     NaN s at bound [1e-06, 50] | lam at bound [0.1, 5] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976]   4.4886   2.3583
-   none 1565.5166 1555.5620 1556.0382 -773.7810 1109.6921 851.8576 4963.0090   176.5973 -0.1551 -0.0032 -0.0032      NaN     NaN                                                  T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976] 783.2534 787.6824
+  model       BIC       AIC      AICc    LogLik     RMSE     MAE  WAPE (%)  sMAPE (%)     PCC     CCC     ICC  CV_RMSE  CV_MAE                                                                                                                                                        diagnostics     ΔBIC    ΔAICc
+     MM  781.5579  766.6261  767.6505 -377.3130  16.7855 12.1452   70.7592    81.9271  0.3478  0.2284  0.2304  21.9318 21.9261                                                                      T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_4 at bound [0.0994, 3.976]   0.0000   0.0000
+     LS  781.5579  766.6261  767.6505 -377.3130  16.7855 12.1452   70.7592    81.9271  0.3478  0.2284  0.2304  21.9038 21.8981                              a at bound [0, 5] | b at bound [0, 1] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_4 at bound [0.0994, 3.976]   0.0000   0.0000
+   dePR  786.0465  768.6261  770.0088 -377.3130  16.7855 12.1452   70.7593    81.9271  0.3478  0.2284  0.2304  21.9039 21.8981 d at bound [0, 5] | s at bound [1e-06, 50] | lam at bound [0.1, 5] | T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_4 at bound [0.0994, 3.976]   4.4886   2.3583
+     ED  873.4207  858.4889  859.5132 -423.2444  24.7790 17.1090   99.6785   191.0114 -0.1817 -0.0029 -0.0029      NaN     NaN                                                                                                                              a at bound [0, 3] | b at bound [0, 5]  91.8628  91.8628
+AccelED  873.4207  858.4889  859.5133 -423.2444  24.7790 17.1090   99.6785   191.0117 -0.1817 -0.0029 -0.0029      NaN     NaN                                                                                                                              a at bound [0, 3] | b at bound [0, 5]  91.8628  91.8628
+     CD  873.4207  858.4889  859.5133 -423.2445  24.7790 17.1090   99.6785   191.0119 -0.1818 -0.0029 -0.0029      NaN     NaN                                                                                                                              a at bound [0, 3] | b at bound [0, 8]  91.8629  91.8629
+   none 1163.2644 1153.3099 1153.7861 -572.6549 135.3263 94.6358  551.3577   126.3651 -0.1776 -0.0344 -0.0346      NaN     NaN                                      T0_1 at bound [0.1929, 7.714] | T0_2 at bound [0.09949, 3.98] | T0_3 at bound [0.0994, 3.976] | T0_4 at bound [0.0994, 3.976] 381.7065 386.1356
 
-BEST FUNCTION BY BIC: ED
+BEST FUNCTION BY BIC: MM
 
 PARAMETERS AND DIAGNOSTICS
 
-[ED]  objective=283.987
-      a = 0.168659
-      b = 0
+[MM]  objective=281.752
+      a = 0.370818
+      b = 4.36798
   T0_mouse_1 = 7.71431
-  T0_mouse_2 = 0.0994938
-  T0_mouse_3 = 0.0993995
+  T0_mouse_2 = 3.97975
+  T0_mouse_3 = 2.34722
   T0_mouse_4 = 0.0993995
-    - b at bound [0, 5]
     - T0_1 at bound [0.1929, 7.714]
     - T0_2 at bound [0.09949, 3.98]
-    - T0_3 at bound [0.0994, 3.976]
     - T0_4 at bound [0.0994, 3.976]
-  LAST-POINT PREDICTION: RMSE=20.11 MAE=20.11 WAPE=1357.97% CCC=0.000
-    Mouse 1: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 2: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 3: t=150.2 true=0.7007 predicted=21.59 error=20.89
-    Mouse 4: t=150.2 true=1.635 predicted=21.59 error=19.95
+  LAST-POINT PREDICTION: RMSE=21.93 MAE=21.93 WAPE=1480.64% CCC=0.000
+    Mouse 1: t=184.1 true=1.794 predicted=23.61 error=21.82
+    Mouse 2: t=184.1 true=1.794 predicted=23.6 error=21.8
+    Mouse 3: t=150.2 true=0.7007 predicted=23.43 error=22.73
+    Mouse 4: t=150.2 true=1.635 predicted=22.99 error=21.35
 
-[LS]  objective=283.987
-      a = 0.168659
+[LS]  objective=281.752
+      a = 0.0690796
       b = 0
   T0_mouse_1 = 7.71431
-  T0_mouse_2 = 0.0994938
-  T0_mouse_3 = 0.0993995
+  T0_mouse_2 = 3.97975
+  T0_mouse_3 = 2.34722
   T0_mouse_4 = 0.0993995
+    - a at bound [0, 5]
     - b at bound [0, 1]
     - T0_1 at bound [0.1929, 7.714]
     - T0_2 at bound [0.09949, 3.98]
-    - T0_3 at bound [0.0994, 3.976]
     - T0_4 at bound [0.0994, 3.976]
-  LAST-POINT PREDICTION: RMSE=20.11 MAE=20.11 WAPE=1357.97% CCC=0.000
-    Mouse 1: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 2: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 3: t=150.2 true=0.7007 predicted=21.59 error=20.89
-    Mouse 4: t=150.2 true=1.635 predicted=21.59 error=19.95
+  LAST-POINT PREDICTION: RMSE=21.9 MAE=21.9 WAPE=1478.75% CCC=0.000
+    Mouse 1: t=184.1 true=1.794 predicted=23.58 error=21.79
+    Mouse 2: t=184.1 true=1.794 predicted=23.57 error=21.77
+    Mouse 3: t=150.2 true=0.7007 predicted=23.41 error=22.71
+    Mouse 4: t=150.2 true=1.635 predicted=22.96 error=21.33
 
-[MM]  objective=283.987
-      a = 0.969438
-      b = 4.74792
-  T0_mouse_1 = 7.71431
-  T0_mouse_2 = 0.0994938
-  T0_mouse_3 = 0.0993995
-  T0_mouse_4 = 0.0993995
-    - T0_1 at bound [0.1929, 7.714]
-    - T0_2 at bound [0.09949, 3.98]
-    - T0_3 at bound [0.0994, 3.976]
-    - T0_4 at bound [0.0994, 3.976]
-  LAST-POINT PREDICTION: RMSE=20.11 MAE=20.11 WAPE=1357.97% CCC=0.000
-    Mouse 1: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 2: t=184.1 true=1.794 predicted=21.59 error=19.8
-    Mouse 3: t=150.2 true=0.7007 predicted=21.59 error=20.89
-    Mouse 4: t=150.2 true=1.635 predicted=21.59 error=19.95
-
-[CD]  objective=283.988
-      a = 0.16866
-      b = 0
-  T0_mouse_1 = 7.71431
-  T0_mouse_2 = 0.0994938
-  T0_mouse_3 = 0.101113
-  T0_mouse_4 = 0.0993995
-    - b at bound [0, 8]
-    - T0_1 at bound [0.1929, 7.714]
-    - T0_2 at bound [0.09949, 3.98]
-    - T0_3 at bound [0.0994, 3.976]
-    - T0_4 at bound [0.0994, 3.976]
-
-[AccelED]  objective=291.228
-      a = 0.170769
-      b = 0
-  T0_mouse_1 = 4.6491
-  T0_mouse_2 = 2.39003
-  T0_mouse_3 = 2.38789
-  T0_mouse_4 = 2.38341
-    - b at bound [0, 5]
-
-[dePR]  objective=283.987
-      d = 0.168659
+[dePR]  objective=281.752
+      d = 0.0690796
       s = 1e-06
     lam = 0.1
   T0_mouse_1 = 7.71431
-  T0_mouse_2 = 0.0994938
-  T0_mouse_3 = 0.0993995
+  T0_mouse_2 = 3.97975
+  T0_mouse_3 = 2.34718
   T0_mouse_4 = 0.0993995
+    - d at bound [0, 5]
     - s at bound [1e-06, 50]
     - lam at bound [0.1, 5]
     - T0_1 at bound [0.1929, 7.714]
     - T0_2 at bound [0.09949, 3.98]
-    - T0_3 at bound [0.0994, 3.976]
     - T0_4 at bound [0.0994, 3.976]
+  LAST-POINT PREDICTION: RMSE=21.9 MAE=21.9 WAPE=1478.75% CCC=0.000
+    Mouse 1: t=184.1 true=1.794 predicted=23.58 error=21.79
+    Mouse 2: t=184.1 true=1.794 predicted=23.57 error=21.77
+    Mouse 3: t=150.2 true=0.7007 predicted=23.41 error=22.71
+    Mouse 4: t=150.2 true=1.635 predicted=22.96 error=21.33
 
-[none]  objective=1.23142e+06
+[ED]  objective=613.997
+      a = 3
+      b = 0
+  T0_mouse_1 = 1.92853
+  T0_mouse_2 = 0.994852
+  T0_mouse_3 = 0.994029
+  T0_mouse_4 = 0.994011
+    - a at bound [0, 3]
+    - b at bound [0, 5]
+
+[AccelED]  objective=613.997
+      a = 3
+      b = 0
+  T0_mouse_1 = 1.92872
+  T0_mouse_2 = 0.994612
+  T0_mouse_3 = 0.994
+  T0_mouse_4 = 0.994028
+    - a at bound [0, 3]
+    - b at bound [0, 5]
+
+[CD]  objective=613.997
+      a = 3
+      b = 0
+  T0_mouse_1 = 1.92811
+  T0_mouse_2 = 0.994822
+  T0_mouse_3 = 0.993986
+  T0_mouse_4 = 0.993763
+    - a at bound [0, 3]
+    - b at bound [0, 8]
+
+[none]  objective=18313.2
   (no treatment parameters)
   T0_mouse_1 = 0.192858
   T0_mouse_2 = 0.0994938

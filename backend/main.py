@@ -15,8 +15,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .core.fitting import Dataset, calibrate_global, evaluate_last_point_validation
-from .core.io_data import normalise_table, normalise_table_report, read_table
+from .core.fitting import Dataset, calibrate_global, default_workers, evaluate_last_point_validations
+from .core.io_data import harmonise_headers, normalise_table, normalise_table_report, read_table
 from .core.models import GROWTH_LAWS, TREATMENT_LAWS, simulate
 from .core.treatment_fitting import compare_treatments
 from .jobs import JobCancelled, cancel as cancel_job, get as get_job, is_cancelled, result as get_job_result, submit as submit_job, update as update_job
@@ -85,11 +85,28 @@ class SimulationRequest(BaseModel):
     scenarios: list[Scenario] = Field(default_factory=list)
 
 
-def _guess_column(columns: list[str], words: tuple[str, ...]) -> str | None:
-    lowered = {column: column.lower().replace(" ", "_") for column in columns}
-    for column, value in lowered.items():
-        if any(word in value for word in words):
-            return column
+class FolderUploadRequest(BaseModel):
+    directory: str
+
+
+def _guess_column(columns: list[str], words: tuple[str, ...], exclude: tuple[str | None, ...] = ()) -> str | None:
+    """Pick the column that best matches `words` (listed in priority order).
+
+    Exact names win ("day", "volume", "x", "y"). Substrings are only accepted
+    for words longer than one letter: otherwise "y" matches "day" and "v"
+    matches almost anything. Columns in `exclude` are never returned, so time
+    and volume cannot end up on the same column.
+    """
+    lowered = {column: column.strip().lower().replace(" ", "_") for column in columns if column not in exclude}
+    for word in words:
+        for column, value in lowered.items():
+            if value == word:
+                return column
+    for word in words:
+        if len(word) > 1:
+            for column, value in lowered.items():
+                if word in value:
+                    return column
     return None
 
 
@@ -97,11 +114,66 @@ def _read_upload(filename: str, content: bytes) -> pd.DataFrame:
     try:
         if filename.lower().endswith((".xlsx", ".xls")):
             return pd.read_excel(io.BytesIO(content))
-        sample = content[:4096].decode("utf-8-sig", errors="replace")
+        sample = content[:4096].decode("utf-8-sig")
         separator = ";" if sample.count(";") > sample.count(",") else ("\t" if sample.count("\t") > sample.count(",") else ",")
         return pd.read_csv(io.BytesIO(content), sep=separator)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Unable to read file: {exc}") from exc
+
+
+def _looks_like_tabular_content(content: bytes) -> bool:
+    sample = content[:4096]
+    return b"\n" in sample and any(separator in sample for separator in (b",", b";", b"\t"))
+
+
+def _build_uploaded_frame(files: list[tuple[str, bytes]]) -> tuple[pd.DataFrame, list[str], list[str]]:
+    """Merge the uploaded files into one table.
+
+    A file that cannot be read no longer blocks the others: it is skipped and
+    reported in `warnings`. The upload only fails if nothing at all is usable.
+    """
+    frames: list[pd.DataFrame] = []
+    filenames: list[str] = []
+    warnings: list[str] = []
+
+    for filename, content in files:
+        if not filename or not content:
+            continue
+        if not filename.lower().endswith((".csv", ".xlsx", ".xls")):
+            warnings.append(f"{filename}: ignored (not a CSV/XLSX file)")
+            continue
+        try:
+            parsed = read_table(filename, content)
+        except Exception as exc:
+            if _looks_like_tabular_content(content):
+                raise HTTPException(status_code=400, detail=f"{filename}: could not be read ({exc})") from exc
+            warnings.append(f"{filename}: skipped, could not be read ({exc})")
+            continue
+        if parsed.empty:
+            warnings.append(f"{filename}: skipped, empty table")
+            continue
+        frames.append(parsed)
+        filenames.append(filename)
+
+    if not frames:
+        detail = "No valid CSV/XLSX file found in the upload"
+        if warnings:
+            detail += ": " + " | ".join(warnings)
+        raise HTTPException(status_code=400, detail=detail)
+
+    frames, header_warnings = harmonise_headers(frames, filenames)
+    warnings.extend(header_warnings)
+
+    if len(frames) == 1:
+        return frames[0], filenames, warnings
+
+    merged_frames: list[pd.DataFrame] = []
+    for frame, filename in zip(frames, filenames):
+        frame = frame.copy()
+        if "__source_file" not in frame.columns:
+            frame["__source_file"] = filename
+        merged_frames.append(frame)
+    return pd.concat(merged_frames, ignore_index=True, sort=False), filenames, warnings
 
 
 def _save_session(session_id: str, session: dict[str, Any]) -> None:
@@ -122,8 +194,24 @@ def _load_sessions() -> None:
             session["frame"] = pd.read_csv(uploaded)
             mapping = session.get("mapping")
             if mapping:
-                session["frame"] = _convert_units(session["frame"], mapping, session.get("time_unit", "days"), session.get("volume_unit", "mm3"))
-                session["datasets"] = normalise_table(session["frame"], mapping, session.get("control_group", "control"), session.get("filename", "upload"))
+                session["frame"] = _convert_units(
+                    session["frame"],
+                    mapping,
+                    session.get("time_unit", "days"),
+                    session.get("volume_unit", "mm3"),
+                )
+                datasets, validation = normalise_table_report(
+                    session["frame"],
+                    mapping,
+                    session.get("control_group", "control"),
+                    session.get("filename", "upload"),
+                )
+                excluded = set(session.get("excluded_subjects", []))
+                session["datasets"] = [dataset for dataset in datasets if dataset.subject not in excluded]
+                for item in validation:
+                    if item["id"] in excluded:
+                        item["excluded"] = True
+                session["validation"] = validation
             SESSIONS[directory.name] = session
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             continue
@@ -132,7 +220,9 @@ def _load_sessions() -> None:
 def _preview(frame: pd.DataFrame) -> dict[str, Any]:
     columns = [str(column) for column in frame.columns if not str(column).startswith("__")]
     visible = frame[columns] if columns else frame
-    return {"columns": columns, "rows": visible.head(8).replace({np.nan: None}).to_dict(orient="records"), "mapping_guess": {"time": _guess_column(columns, ("day", "time", "dia", "t", "x")), "volume": _guess_column(columns, ("volume", "tumor", "tumour", "mm3", "v", "y")), "subject": _guess_column(columns, ("mouse", "subject", "animal", "id")), "group": _guess_column(columns, ("group", "arm", "treatment"))}}
+    time_guess = _guess_column(columns, ("day", "time", "dia", "t", "x"))
+    volume_guess = _guess_column(columns, ("volume", "tumor", "tumour", "mm3", "v", "y"), exclude=(time_guess,))
+    return {"columns": columns, "rows": visible.head(8).replace({np.nan: None}).to_dict(orient="records"), "mapping_guess": {"time": time_guess, "volume": volume_guess, "subject": _guess_column(columns, ("mouse", "subject", "animal", "id"), exclude=(time_guess, volume_guess)), "group": _guess_column(columns, ("group", "arm", "treatment"), exclude=(time_guess, volume_guess))}}
 
 
 def _normalise(frame: pd.DataFrame, mapping: dict[str, str | None], control_group: str, treated_groups: list[str], exclude: list[str]) -> list[Dataset]:
@@ -141,7 +231,7 @@ def _normalise(frame: pd.DataFrame, mapping: dict[str, str | None], control_grou
     subject_column = mapping.get("subject")
     group_column = mapping.get("group")
     if not time_column or not volume_column:
-        raise HTTPException(status_code=422, detail="Les colonnes time et volume sont obligatoires")
+        raise HTTPException(status_code=422, detail="The time and volume columns are required")
     work = frame.copy()
     work["__time"] = pd.to_numeric(work[time_column].astype(str).str.replace(",", "."), errors="coerce")
     work["__volume"] = pd.to_numeric(work[volume_column].astype(str).str.replace(",", "."), errors="coerce")
@@ -208,25 +298,43 @@ def get_session(session_id: str) -> dict[str, Any]:
 async def upload_dataset(file: list[UploadFile] = File(...)) -> dict[str, Any]:
     if not file:
         raise HTTPException(status_code=400, detail="At least one file is required")
-    frames = []
-    filenames = []
-    for upload in file:
-        content = await upload.read()
-        filename = upload.filename or "upload.csv"
-        parsed = read_table(filename, content)
-        frames.append(parsed)
-        filenames.append(filename)
-    if len(frames) > 1:
-        for parsed, filename in zip(frames, filenames):
-            parsed["__source_file"] = filename
-    frame = pd.concat(frames, ignore_index=True, sort=False)
+
+    payload = [(upload.filename or "upload.csv", await upload.read()) for upload in file]
+    frame, filenames, warnings = _build_uploaded_frame(payload)
     source_id = uuid.uuid4().hex[:10]
     session = {"frame": frame, "datasets": None, "calibration": None, "filename": filenames[0], "filenames": filenames}
     SESSIONS[source_id] = session
     (SESSIONS_DIR / source_id).mkdir(exist_ok=True)
     frame.to_csv(SESSIONS_DIR / source_id / "uploaded.csv", index=False)
     _save_session(source_id, session)
-    return {"source_id": source_id, "filename": filenames[0], "filenames": filenames, **_preview(frame)}
+    return {"source_id": source_id, "filename": filenames[0], "filenames": filenames, "warnings": warnings, **_preview(frame)}
+
+
+@app.post("/api/datasets/upload-folder")
+def upload_folder(request: FolderUploadRequest) -> dict[str, Any]:
+    target = Path(request.directory).expanduser()
+    if not target.is_absolute():
+        target = ROOT / target
+    if not target.exists() or not target.is_dir():
+        raise HTTPException(status_code=400, detail=f"Directory not found: {request.directory}")
+
+    payload: list[tuple[str, bytes]] = []
+    for item in sorted(target.rglob("*")):
+        if not item.is_file() or item.suffix.lower() not in {".csv", ".xlsx", ".xls"}:
+            continue
+        payload.append((item.relative_to(target).as_posix(), item.read_bytes()))
+
+    if not payload:
+        raise HTTPException(status_code=400, detail=f"No CSV/XLSX files found in: {target}")
+
+    frame, filenames, warnings = _build_uploaded_frame(payload)
+    source_id = uuid.uuid4().hex[:10]
+    session = {"frame": frame, "datasets": None, "calibration": None, "filename": filenames[0], "filenames": filenames}
+    SESSIONS[source_id] = session
+    (SESSIONS_DIR / source_id).mkdir(exist_ok=True)
+    frame.to_csv(SESSIONS_DIR / source_id / "uploaded.csv", index=False)
+    _save_session(source_id, session)
+    return {"source_id": source_id, "filename": filenames[0], "filenames": filenames, "warnings": warnings, **_preview(frame)}
 
 
 @app.post("/api/datasets/mapping")
@@ -250,6 +358,7 @@ def apply_mapping(request: MappingRequest) -> dict[str, Any]:
     session["mapping"] = request.mapping
     session["time_unit"] = request.time_unit
     session["volume_unit"] = request.volume_unit
+    session["excluded_subjects"] = sorted(excluded)
     session["validation"] = validation
     _save_session(request.source_id, session)
     return {"session_id": request.source_id, "subjects": validation, "ready": len(datasets) > 0, "groups": sorted({dataset.group for dataset in datasets}), "control_group": request.control_group, "excluded_subjects": sorted(excluded)}
@@ -266,11 +375,18 @@ def _calibrate_session(job_id: str, session_id: str, request: CalibrationRequest
             raise JobCancelled()
         update_job(job_id, stage=stage, step=step, n_steps=n_steps)
 
-    result = calibrate_global(control or session["datasets"], request.models, request.starts, request.seed, request.t0_strategy, request.count_t0_in_ic, on_progress=on_progress, maxiter=request.maxiter, selection_metric=request.selection_metric)
+    result = calibrate_global(control or session["datasets"], request.models, request.starts, request.seed, request.t0_strategy, request.count_t0_in_ic, on_progress=on_progress, maxiter=request.maxiter, selection_metric=request.selection_metric, workers=default_workers())
     if request.validation_top_k:
-        update_job(job_id, stage="last-point validation")
-        for ranked in result["ranking"][:request.validation_top_k]:
-            ranked["validation"] = evaluate_last_point_validation(control or session["datasets"], ranked["model"], max(1, min(request.starts, 3)), request.seed, request.t0_strategy)
+        top = result["ranking"][:request.validation_top_k]
+
+        def on_tick(done: int, total: int) -> None:
+            if is_cancelled(job_id):
+                raise JobCancelled()
+            update_job(job_id, stage=f"last-point validation ({done}/{total})")
+
+        validations = evaluate_last_point_validations(control or session["datasets"], [ranked["model"] for ranked in top], max(1, min(request.starts, 3)), request.seed, request.t0_strategy, workers=default_workers(), on_tick=on_tick)
+        for ranked, validation in zip(top, validations):
+            ranked["validation"] = validation
     session["calibration"] = result
     session["calibration_config"] = request.model_dump()
     _save_session(session_id, session)
@@ -362,7 +478,7 @@ def _run_simulation_session(job_id: str, request: SimulationRequest) -> dict[str
     for index, scenario in enumerate(request.scenarios, 1):
         update_job(job_id, stage=f"simulation {scenario.name}", step=index, n_steps=n_steps)
         if len(scenario.dose_times) != len(scenario.doses):
-            raise ValueError(f"Le scenario {scenario.name} a des doses incoherentes")
+            raise ValueError(f"Scenario {scenario.name} has days and doses lists of different lengths")
         values = simulate(times, request.initial_volume, winner["model"], winner["params"], request.treatment_model, request.treatment_params, zip(scenario.dose_times, scenario.doses))
         final = float(values[-1])
         scenarios.append({"name": scenario.name, "values": values.tolist(), "final_volume": final, "tgi_pct": float(100 * (1 - final / max(float(control[-1]), 1e-12)))})
@@ -410,7 +526,7 @@ def export_session(session_id: str) -> StreamingResponse:
         bundle.writestr("provenance.json", json.dumps({
             "app_version": app.version,
             "session_id": session_id,
-            "source_file": session.get("filename", "inconnu"),
+            "source_file": session.get("filename", "unknown"),
             "control_group": session.get("control_group"),
             "treated_groups": session.get("treated_groups", []),
             "calibration_config": calibration_config,
@@ -421,8 +537,8 @@ def export_session(session_id: str) -> StreamingResponse:
         report = [
             "Tumor Fit Tool - session report",
             f"Session: {session_id}",
-            f"Version de l'application: {app.version}",
-            f"Fichier source: {session.get('filename', 'inconnu')}",
+            f"App version: {app.version}",
+            f"Source file: {session.get('filename', 'unknown')}",
             f"Seed: {calibration_config.get('seed', 'unknown')}",
             f"T0 strategy: {calibration.get('t0_strategy', 'free')}",
             f"Winning model: {calibration['winner']}",
@@ -458,8 +574,8 @@ def export_session(session_id: str) -> StreamingResponse:
             figure, axes = plt.subplots(n_rows, n_cols, figsize=(4.2 * n_cols, 3.4 * n_rows), dpi=300, squeeze=False)
             for index, curve in enumerate(row["curves"]):
                 axis = axes[index // n_cols][index % n_cols]
-                axis.plot(curve["t"], curve["observed"], "o", color="#3d6078", markersize=3, label="Observe")
-                axis.plot(curve["t"], curve["fitted"], "-", color="#c84438", linewidth=1.6, label="Ajuste")
+                axis.plot(curve["t"], curve["observed"], "o", color="#3d6078", markersize=3, label="Observed")
+                axis.plot(curve["t"], curve["fitted"], "-", color="#c84438", linewidth=1.6, label="Fitted")
                 axis.set_title(str(curve["subject"]), fontsize=8)
                 axis.tick_params(labelsize=6)
                 if index == 0:
@@ -488,8 +604,8 @@ def export_session(session_id: str) -> StreamingResponse:
             colors = ["#c84438", "#3d6078", "#56664d", "#9a6a34"]
             for index, scenario in enumerate(simulation["scenarios"]):
                 axis.plot(simulation["t"], scenario["values"], color=colors[index % len(colors)], label=scenario["name"])
-            axis.set_xlabel("Temps (jours)")
-            axis.set_ylabel("Volume tumoral")
+            axis.set_xlabel("Time (days)")
+            axis.set_ylabel("Tumor volume")
             axis.set_title(f"Projections - model {simulation['model']}")
             axis.grid(alpha=0.2)
             axis.legend()
