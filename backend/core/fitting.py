@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Callable
 import numpy as np
 from scipy.optimize import minimize
@@ -107,12 +108,39 @@ def fit_global_model(datasets: list[Dataset], model: str, starts: int = 3, seed:
     def unpack(values):
         return _params(model, values[:len(parameter_bounds)]), values[len(parameter_bounds):]
 
+    # Per-subject cache of the residuals. L-BFGS-B estimates gradients by nudging one
+    # variable at a time, and nudging a subject's T0 only changes that subject's curve:
+    # the other curves are looked up instead of being re-integrated. The same inputs give
+    # the same floats, so results are bit-for-bit identical to the uncached computation.
+    n_shared = len(parameter_bounds)
+    caches: list[dict] = [{} for _ in datasets]
+    failed = object()
+
+    def subject_errors(index: int, shared_key: tuple, params: dict, t0: float):
+        key = (shared_key, float(t0))
+        cached = caches[index].get(key)
+        if cached is None:
+            try:
+                cached = simulate(datasets[index].time, t0, model, params) - datasets[index].volume
+            except Exception:
+                cached = failed
+            if len(caches[index]) >= 20000:
+                caches[index].clear()
+            caches[index][key] = cached
+        return cached
+
     def objective(values):
         params, t0_values = unpack(values)
         if any(t0 <= 0 for t0 in t0_values):
             return 1e18
+        shared_key = tuple(values[:n_shared].tolist())
+        errors = []
+        for index, t0 in enumerate(t0_values):
+            cached = subject_errors(index, shared_key, params, t0)
+            if cached is failed:
+                return 1e18
+            errors.append(cached)
         try:
-            errors = [simulate(dataset.time, t0, model, params) - dataset.volume for dataset, t0 in zip(datasets, t0_values)]
             return float(np.mean(np.concatenate(errors) ** 2))
         except Exception:
             return 1e18
@@ -141,7 +169,7 @@ def fit_global_model(datasets: list[Dataset], model: str, starts: int = 3, seed:
     return {"model": model, "params": params, "T0": [float(value) for value in t0_values], "metrics": metrics, "bic": metrics["bic"], "rmse": metrics["rmse"], "curves": curves, "diagnostics": diagnostics, "converged": bool(best.success)}
 
 
-def calibrate_global(datasets: list[Dataset], models: list[str] | None = None, starts: int = 3, seed: int = 42, t0_strategy: str = "free", count_t0_in_ic: bool = True, on_progress: Callable[[str, int, int], None] | None = None, maxiter: int = 250, selection_metric: str = "bic") -> dict:
+def calibrate_global(datasets: list[Dataset], models: list[str] | None = None, starts: int = 3, seed: int = 42, t0_strategy: str = "free", count_t0_in_ic: bool = True, on_progress: Callable[[str, int, int], None] | None = None, maxiter: int = 250, selection_metric: str = "bic", workers: int = 1) -> dict:
     """Fit every requested law and rank them.
 
     `on_progress(stage_text, step, n_steps)` is called before each
@@ -161,11 +189,19 @@ def calibrate_global(datasets: list[Dataset], models: list[str] | None = None, s
         return on_start
 
     if selection_metric not in {"bic", "aicc"}:
-        raise ValueError("Le critere doit etre bic ou aicc")
-    results = [
-        fit_global_model(datasets, model, starts, seed + index, t0_strategy, count_t0_in_ic, on_start=make_on_start(model), maxiter=maxiter)
-        for index, model in enumerate(selected)
-    ]
+        raise ValueError("The selection criterion must be bic or aicc")
+    results = None
+    if workers > 1 and len(selected) > 1:
+        def on_tick(done: int, total: int) -> None:
+            if on_progress is not None:
+                on_progress(f"fitted {done}/{total} laws on {min(workers, total)} CPU cores", done * n_starts, n_steps)
+        tasks = [(datasets, model, starts, seed + index, t0_strategy, count_t0_in_ic, maxiter) for index, model in enumerate(selected)]
+        results = run_parallel(_fit_one, tasks, workers, on_tick)
+    if results is None:
+        results = [
+            fit_global_model(datasets, model, starts, seed + index, t0_strategy, count_t0_in_ic, on_start=make_on_start(model), maxiter=maxiter)
+            for index, model in enumerate(selected)
+        ]
     results.sort(key=lambda result: result["metrics"][selection_metric])
     best_metric = results[0]["metrics"][selection_metric]
     best_bic = results[0]["metrics"]["bic"]
@@ -189,3 +225,95 @@ def evaluate_last_point_validation(datasets: list[Dataset], model: str, starts: 
         predictions.append(float(prediction)); errors.append(float(dataset.volume[-1]))
     errors_array = np.asarray(errors) - np.asarray(predictions)
     return {"enabled": True, "mae": float(np.mean(np.abs(errors_array))), "rmse": float(np.sqrt(np.mean(errors_array ** 2))), "mape": float(100 * np.mean(np.abs(errors_array) / np.maximum(np.abs(errors), 1e-12))), "observed": errors, "predicted": predictions}
+
+
+# --------------------------------------------------------------------------------------
+# Parallel execution (one process per law). Each law is fitted with its own seed
+# (seed + index), exactly as in the sequential loop, so the numbers are identical;
+# only the wall-clock time changes.
+# --------------------------------------------------------------------------------------
+def default_workers() -> int:
+    """Processes to use: all cores but one (at most 8). Override with TUMOR_FIT_WORKERS."""
+    value = os.environ.get("TUMOR_FIT_WORKERS", "")
+    if value.isdigit() and int(value) >= 1:
+        return int(value)
+    return max(1, min((os.cpu_count() or 1) - 1, 8))
+
+
+def _fit_one(task: tuple) -> dict:
+    datasets, model, starts, seed, t0_strategy, count_t0_in_ic, maxiter = task
+    return fit_global_model(datasets, model, starts, seed, t0_strategy, count_t0_in_ic, maxiter=maxiter)
+
+
+def _validate_one(task: tuple) -> dict:
+    datasets, model, starts, seed, t0_strategy = task
+    return evaluate_last_point_validation(datasets, model, starts, seed, t0_strategy)
+
+
+def run_parallel(function: Callable, tasks: list, workers: int, on_tick: Callable[[int, int], None] | None = None) -> list | None:
+    """Run `function(task)` for every task in separate processes and return results in task order.
+
+    `on_tick(done, total)` is called about every half second and after each completion; it may
+    raise (for example to cancel), in which case the worker processes are stopped.
+    Returns None when processes cannot be used on this machine, so the caller can fall back to
+    the sequential path. Errors raised by `function` itself are propagated unchanged.
+    """
+    import multiprocessing
+    import pickle
+    from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+    from concurrent.futures.process import BrokenProcessPool
+
+    n_workers = min(workers, len(tasks))
+    if n_workers < 2:
+        return None
+    try:
+        executor = ProcessPoolExecutor(max_workers=n_workers, mp_context=multiprocessing.get_context("spawn"))
+        futures = {executor.submit(function, task): index for index, task in enumerate(tasks)}
+    except (OSError, ValueError, NotImplementedError, RuntimeError):
+        return None
+    results: list = [None] * len(tasks)
+    pending = set(futures)
+    done_count = 0
+    try:
+        if on_tick is not None:
+            on_tick(0, len(tasks))
+        while pending:
+            finished, pending = wait(pending, timeout=0.5, return_when=FIRST_COMPLETED)
+            for future in finished:
+                results[futures[future]] = future.result()
+                done_count += 1
+            if on_tick is not None:
+                on_tick(done_count, len(tasks))
+    except (BrokenProcessPool, OSError, pickle.PicklingError):
+        _stop_executor(executor)
+        return None
+    except BaseException:
+        _stop_executor(executor)
+        raise
+    executor.shutdown()
+    return results
+
+
+def _stop_executor(executor) -> None:
+    # Grab the worker processes first: shutdown() clears the executor's own list of them.
+    processes = list((getattr(executor, "_processes", None) or {}).values())
+    executor.shutdown(wait=False, cancel_futures=True)
+    for process in processes:
+        try:
+            process.terminate()
+        except Exception:
+            pass
+
+
+def evaluate_last_point_validations(datasets: list[Dataset], models: list[str], starts: int = 2, seed: int = 42, t0_strategy: str = "free", workers: int = 1, on_tick: Callable[[int, int], None] | None = None) -> list[dict]:
+    """`evaluate_last_point_validation` for several laws, in parallel when `workers` > 1."""
+    tasks = [(datasets, model, starts, seed, t0_strategy) for model in models]
+    parallel = run_parallel(_validate_one, tasks, workers, on_tick) if workers > 1 and len(tasks) > 1 else None
+    if parallel is not None:
+        return parallel
+    results = []
+    for index, task in enumerate(tasks):
+        if on_tick is not None:
+            on_tick(index, len(tasks))
+        results.append(_validate_one(task))
+    return results
