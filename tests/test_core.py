@@ -4,7 +4,8 @@ from scipy.integrate import solve_ivp
 
 from backend.core.fitting import Dataset, calibrate, calibrate_global, default_workers, run_parallel
 from backend.core.io_data import harmonise_headers, infer_groups_from_files, normalise_table_report, read_table
-from backend.core.models import simulate
+from backend.core.models import TREATMENT_LAWS, simulate, treatment_effect
+from backend.core.specs import get_treatment_spec
 
 
 def test_exponential_simulation_is_positive():
@@ -42,6 +43,26 @@ def test_treatment_simulation_matches_reference_across_dose_boundary():
     actual = simulate(times, 0.8, "linear", growth_params, "ED", treatment_params, zip(dose_times, doses))
 
     assert np.max(np.abs(actual - reference)) < 1e-3
+
+
+def test_appendix_treatment_equations_match_the_notebook():
+    doses = [(10.0, 1.0)]
+    assert treatment_effect(20, 10, doses, {"dmax": 0.4, "tau": 10, "n": 2}, "T_hill") == 0.2
+    assert np.isclose(treatment_effect(20, 10, doses, {"dmax": 0.4, "lam": np.log(2) / 10}, "T_expon"), 0.2)
+    assert np.isclose(treatment_effect(20, 10, doses, {"k": 0.1, "tau": 10}, "T_pulso"), 1 / np.e)
+    assert treatment_effect(20, 10, doses, {"a": 0.1}, "T_rampa") == 1.0
+    assert treatment_effect(20, 10, doses, {"dmax": 40, "tau": 10, "n": 2, "h": 10}, "T_hill_sat") == 1.0
+    assert all(treatment_effect(10, 10, doses, {"dmax": 1, "tau": 10, "n": 2, "lam": 0.1, "k": 0.1, "a": 0.1, "h": 10}, model) == 0 for model in TREATMENT_LAWS[-5:])
+
+
+def test_appendix_treatment_specs_use_the_selected_growth_rate():
+    hill = get_treatment_spec("T_hill", {"r": 0.2})
+    assert hill.names == ("dmax", "tau", "n")
+    assert hill.bounds[0] == (0.2, 2.0)
+    assert get_treatment_spec("T_expon", {"r": 0.2}).bounds[0] == (0.2, 10.0)
+    assert get_treatment_spec("T_pulso").names == ("k", "tau")
+    assert get_treatment_spec("T_rampa").names == ("a",)
+    assert get_treatment_spec("T_hill_sat").names == ("dmax", "tau", "n", "h")
 
 
 def test_calibration_returns_ranked_models():

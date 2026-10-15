@@ -291,12 +291,16 @@ the next tab. You can come back and choose another law at any time.
 
 ### 04 · Treatment
 
-With the growth law frozen, the app fits a **treatment term** on the treated group.
+With the growth law frozen, upload a separate CSV/XLSX containing the treatment
+observations. Map its time, volume, subject, and optional group columns; each
+subject needs at least four positive-volume observations. The app fits every
+**treatment term** against the uploaded treatment curves and plots observed
+points alongside each model's fitted curve.
 
 | Setting | Meaning |
 |---|---|
 | **Treated group** | Group the term is fitted on (the non-control groups are offered first) |
-| **Term** | Term carried forward to the simulation (all seven are always compared) |
+| **Term** | Term carried forward to the simulation (all twelve are always compared) |
 | **Dose days** | Days of administration, **on the same clock as your time column** |
 | **Doses** | Dose given each day, same number of values as the days |
 | **Starts** | Random starting points per term |
@@ -312,7 +316,16 @@ A treatment effect `e(t)` is subtracted from the growth rate (`dV/dt = growth �
 | **MM** | `a·d / (1 + b·d)`: saturates with the dose, does not fade |
 | **LS** | `a·d / (1 + b·V)`: weaker on larger tumours, does not fade |
 | **dePR** | `δ·d^λ / (s·V^λ + d^λ)`: depends on both dose and volume (δ, s, λ fitted) |
+| **T_hill** | `dmax·sⁿ / (τⁿ + sⁿ)`: delayed, sigmoidal onset of treatment |
+| **T_expon** | `dmax·(1 − exp(−λ·s))`: treatment effect that rises toward a maximum |
+| **T_pulso** | `k·s·exp(−s/τ)`: effect that rises to a peak, then fades |
+| **T_rampa** | `a·s`: treatment effect that increases linearly over time |
+| **T_hill_sat** | `dmax·[sⁿ/(τⁿ+sⁿ)]·V/(h+V)`: delayed effect with saturation by tumour volume |
 | **none** | No effect. Always included as the reference |
+
+For the five time-dependent terms, `s = max(t − t₀, 0)`, where `t₀` is the first
+treatment day; dose sizes do not enter those equations. The app shows the selected
+equation in the treatment form.
 
 **If `none` ranks first**, no treatment term explained the data better than doing nothing:
 check the dose schedule before concluding there is an effect.

@@ -10,7 +10,7 @@ from .metrics import metrics_from_predictions
 def fit_treatment(datasets, growth_model, growth_params, treatment_model, doses, starts=3, seed=42, on_progress=None, progress_state=None, n_steps=1):
     if treatment_model not in TREATMENT_LAWS:
         raise ValueError(f"Unknown treatment model: {treatment_model}")
-    spec = get_treatment_spec(treatment_model)
+    spec = get_treatment_spec(treatment_model, growth_params)
     if not spec.names:
         predicted = [simulate(d.time, d.volume[0], growth_model, growth_params) for d in datasets]
         y = np.concatenate([d.volume for d in datasets]); yhat = np.concatenate(predicted)
