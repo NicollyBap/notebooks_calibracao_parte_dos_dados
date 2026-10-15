@@ -10,7 +10,7 @@ from typing import Any
 import matplotlib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -40,6 +40,14 @@ class MappingRequest(BaseModel):
     control_group: str
     treated_groups: list[str] = Field(default_factory=list)
     exclude_subjects: list[str] = Field(default_factory=list)
+    time_unit: str = "days"
+    volume_unit: str = "mm3"
+
+
+class TreatmentMappingRequest(BaseModel):
+    session_id: str
+    mapping: dict[str, str | None]
+    default_group: str = "treatment"
     time_unit: str = "days"
     volume_unit: str = "mm3"
 
@@ -179,7 +187,7 @@ def _build_uploaded_frame(files: list[tuple[str, bytes]]) -> tuple[pd.DataFrame,
 def _save_session(session_id: str, session: dict[str, Any]) -> None:
     directory = SESSIONS_DIR / session_id
     directory.mkdir(exist_ok=True)
-    serialisable = {key: value for key, value in session.items() if key not in {"frame", "datasets"}}
+    serialisable = {key: value for key, value in session.items() if key not in {"frame", "datasets", "treatment_frame", "treatment_datasets"}}
     (directory / "session.json").write_text(json.dumps(serialisable, default=str, indent=2), encoding="utf-8")
 
 
@@ -187,6 +195,7 @@ def _load_sessions() -> None:
     for directory in SESSIONS_DIR.iterdir():
         metadata = directory / "session.json"
         uploaded = directory / "uploaded.csv"
+        treatment_uploaded = directory / "treatment_uploaded.csv"
         if not directory.is_dir() or not metadata.exists() or not uploaded.exists():
             continue
         try:
@@ -212,6 +221,24 @@ def _load_sessions() -> None:
                     if item["id"] in excluded:
                         item["excluded"] = True
                 session["validation"] = validation
+            if treatment_uploaded.exists():
+                session["treatment_frame"] = pd.read_csv(treatment_uploaded)
+                treatment_mapping = session.get("treatment_mapping")
+                if treatment_mapping:
+                    treatment_frame = _convert_units(
+                        session["treatment_frame"],
+                        treatment_mapping,
+                        session.get("treatment_time_unit", "days"),
+                        session.get("treatment_volume_unit", "mm3"),
+                    )
+                    treatment_datasets, treatment_validation = normalise_table_report(
+                        treatment_frame,
+                        treatment_mapping,
+                        session.get("treatment_default_group", "treatment"),
+                        session.get("treatment_filename", "treatment upload"),
+                    )
+                    session["treatment_datasets"] = treatment_datasets
+                    session["treatment_validation"] = treatment_validation
             SESSIONS[directory.name] = session
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             continue
@@ -291,7 +318,8 @@ def get_session(session_id: str) -> dict[str, Any]:
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     mapping = session.get("mapping")
-    return {"session_id": session_id, "filename": session.get("filename", "upload"), "preview": _preview(session["frame"]), "mapping": mapping, "control_group": session.get("control_group"), "groups": sorted({dataset.group for dataset in session.get("datasets") or []}), "validation": session.get("validation", []), "calibration": session.get("calibration"), "treatment": session.get("treatment"), "simulation": session.get("simulation")}
+    treatment_frame = session.get("treatment_frame")
+    return {"session_id": session_id, "filename": session.get("filename", "upload"), "preview": _preview(session["frame"]), "mapping": mapping, "control_group": session.get("control_group"), "groups": sorted({dataset.group for dataset in session.get("datasets") or []}), "validation": session.get("validation", []), "calibration": session.get("calibration"), "treatment": session.get("treatment"), "treatment_upload": {"filename": session.get("treatment_filename"), "filenames": session.get("treatment_filenames", []), **_preview(treatment_frame)} if treatment_frame is not None else None, "treatment_mapping": session.get("treatment_mapping"), "treatment_groups": sorted({dataset.group for dataset in session.get("treatment_datasets") or []}), "treatment_validation": session.get("treatment_validation", []), "simulation": session.get("simulation")}
 
 
 @app.post("/api/datasets/upload")
@@ -308,6 +336,66 @@ async def upload_dataset(file: list[UploadFile] = File(...)) -> dict[str, Any]:
     frame.to_csv(SESSIONS_DIR / source_id / "uploaded.csv", index=False)
     _save_session(source_id, session)
     return {"source_id": source_id, "filename": filenames[0], "filenames": filenames, "warnings": warnings, **_preview(frame)}
+
+
+@app.post("/api/treatment-data/upload")
+async def upload_treatment_dataset(
+    session_id: str = Form(...),
+    file: list[UploadFile] = File(...),
+) -> dict[str, Any]:
+    session = SESSIONS.get(session_id)
+    if not session or not session.get("calibration"):
+        raise HTTPException(status_code=409, detail="Calibrate growth before uploading treatment data")
+    if not file:
+        raise HTTPException(status_code=400, detail="At least one treatment data file is required")
+    payload = [(upload.filename or "treatment.csv", await upload.read()) for upload in file]
+    frame, filenames, warnings = _build_uploaded_frame(payload)
+    session["treatment_frame"] = frame
+    session["treatment_filename"] = filenames[0]
+    session["treatment_filenames"] = filenames
+    session.pop("treatment_mapping", None)
+    session.pop("treatment_datasets", None)
+    session.pop("treatment_validation", None)
+    session.pop("treatment", None)
+    session.pop("treatment_config", None)
+    directory = SESSIONS_DIR / session_id
+    directory.mkdir(exist_ok=True)
+    frame.to_csv(directory / "treatment_uploaded.csv", index=False)
+    _save_session(session_id, session)
+    return {"session_id": session_id, "filename": filenames[0], "filenames": filenames, "warnings": warnings, **_preview(frame)}
+
+
+@app.post("/api/treatment-data/mapping")
+def apply_treatment_mapping(request: TreatmentMappingRequest) -> dict[str, Any]:
+    session = SESSIONS.get(request.session_id)
+    if not session or session.get("treatment_frame") is None:
+        raise HTTPException(status_code=404, detail="Upload treatment data first")
+    try:
+        frame = _convert_units(session["treatment_frame"], request.mapping, request.time_unit, request.volume_unit)
+        datasets, validation = normalise_table_report(
+            frame,
+            request.mapping,
+            request.default_group,
+            session.get("treatment_filename", "treatment upload"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not datasets:
+        raise HTTPException(status_code=422, detail="No valid treatment subject: at least 4 positive points are required per subject")
+    session["treatment_datasets"] = datasets
+    session["treatment_mapping"] = request.mapping
+    session["treatment_default_group"] = request.default_group
+    session["treatment_time_unit"] = request.time_unit
+    session["treatment_volume_unit"] = request.volume_unit
+    session["treatment_validation"] = validation
+    session.pop("treatment", None)
+    _save_session(request.session_id, session)
+    return {
+        "session_id": request.session_id,
+        "subjects": validation,
+        "ready": True,
+        "groups": sorted({dataset.group for dataset in datasets}),
+    }
 
 
 @app.post("/api/datasets/upload-folder")
@@ -449,8 +537,16 @@ def _fit_treatment_session(job_id: str, request: TreatmentRequest) -> dict[str, 
     if not session or not session.get("calibration"):
         raise ValueError("Calibrate growth first")
     winner = session["calibration"]["ranking"][0]
-    treated = [dataset for dataset in session["datasets"] if dataset.group == request.treated_group] if request.treated_group else [dataset for dataset in session["datasets"] if dataset.group != session.get("control_group")]
-    result = compare_treatments(treated or session["datasets"], winner["model"], winner["params"], request.doses, request.starts, request.seed, on_progress=lambda stage, step, n_steps: update_job(job_id, stage=stage, step=step, n_steps=n_steps))
+    available_datasets = session.get("treatment_datasets")
+    if available_datasets is None:
+        available_datasets = session["datasets"]
+        default_group = session.get("control_group")
+    else:
+        default_group = None
+    treated = [dataset for dataset in available_datasets if dataset.group == request.treated_group] if request.treated_group else [dataset for dataset in available_datasets if dataset.group != default_group]
+    if not treated:
+        raise ValueError("No treatment subjects found for the selected group")
+    result = compare_treatments(treated, winner["model"], winner["params"], request.doses, request.starts, request.seed, on_progress=lambda stage, step, n_steps: update_job(job_id, stage=stage, step=step, n_steps=n_steps))
     session["treatment"] = result
     session["treatment_config"] = request.model_dump()
     _save_session(request.session_id, session)

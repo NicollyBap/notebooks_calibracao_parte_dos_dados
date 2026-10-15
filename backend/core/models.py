@@ -6,7 +6,10 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 GROWTH_LAWS = ("exponential", "mendelsohn", "logistic", "bertalanffy", "gompertz", "linear", "surface")
-TREATMENT_LAWS = ("none", "ED", "CD", "AccelED", "MM", "LS", "dePR")
+TREATMENT_LAWS = (
+    "none", "ED", "CD", "AccelED", "MM", "LS", "dePR",
+    "T_hill", "T_expon", "T_pulso", "T_rampa", "T_hill_sat",
+)
 
 
 def growth_term(volume: float, params: dict[str, float], model: str) -> float:
@@ -33,14 +36,36 @@ def growth_term(volume: float, params: dict[str, float], model: str) -> float:
 def treatment_effect(time: float, volume: float, doses: Iterable[tuple[float, float]], params: dict[str, float], model: str) -> float:
     if model == "none":
         return 0.0
+    dose_list = [(float(dose_time), max(float(dose), 0.0)) for dose_time, dose in doses]
+    if model in {"T_hill", "T_expon", "T_pulso", "T_rampa", "T_hill_sat"}:
+        if not dose_list:
+            return 0.0
+        elapsed = max(float(time) - min(dose_time for dose_time, _ in dose_list), 0.0)
+        hill = 0.0
+        if elapsed > 0.0:
+            tau = max(float(params.get("tau", 1.0)), 1e-12)
+            exponent = max(float(params.get("n", 1.0)), 1e-12)
+            elapsed_power = elapsed ** exponent
+            hill = elapsed_power / (tau ** exponent + elapsed_power)
+        if model == "T_hill":
+            return max(float(params.get("dmax", 0.0)) * hill, 0.0)
+        if model == "T_expon":
+            rate = max(float(params.get("lam", 0.0)), 0.0)
+            return max(float(params.get("dmax", 0.0)) * -np.expm1(-rate * elapsed), 0.0)
+        if model == "T_pulso":
+            tau = max(float(params.get("tau", 1.0)), 1e-12)
+            return max(float(params.get("k", 0.0)) * elapsed * np.exp(-elapsed / tau), 0.0)
+        if model == "T_rampa":
+            return max(float(params.get("a", 0.0)) * elapsed, 0.0)
+        capacity = max(float(params.get("h", 1.0)), 1e-12)
+        return max(float(params.get("dmax", 0.0)) * hill / (capacity + max(float(volume), 1e-12)), 0.0)
     a = float(params.get("a", 0.2))
     b = float(params.get("b", 0.1))
     total = 0.0
     cumulative = 0.0
-    for dose_time, dose in doses:
+    for dose_time, dose in dose_list:
         if time < dose_time:
             continue
-        dose = max(float(dose), 0.0)
         delta = max(float(time) - float(dose_time), 0.0)
         cumulative += dose
         if model == "ED":

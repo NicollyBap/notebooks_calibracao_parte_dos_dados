@@ -28,15 +28,47 @@ def test_async_calibration_and_treatment():
         status = client.get(f"/api/jobs/{job['job_id']}").json()
     assert status["status"] == "done"
     assert status["result"]["ranking"][0]["T0"]
-    treatment = client.post("/api/treatment", json={"session_id": session_id, "doses": [[7, 1], [14, 1]], "starts": 1})
+    treatment_csv = (
+        b"day,volume,mouse,group\n"
+        b"0,0.8,drug_01,treated\n"
+        b"2,0.95,drug_01,treated\n"
+        b"4,1.1,drug_01,treated\n"
+        b"6,1.25,drug_01,treated\n"
+        b"8,1.3,drug_01,treated\n"
+        b"10,1.15,drug_01,treated\n"
+    )
+    treatment_upload = client.post(
+        "/api/treatment-data/upload",
+        data={"session_id": session_id},
+        files={"file": ("treatment.csv", treatment_csv, "text/csv")},
+    )
+    assert treatment_upload.status_code == 200
+    assert treatment_upload.json()["session_id"] == session_id
+    treatment_mapping = client.post(
+        "/api/treatment-data/mapping",
+        json={
+            "session_id": session_id,
+            "mapping": {"time": "day", "volume": "volume", "subject": "mouse", "group": "group"},
+            "default_group": "treated",
+        },
+    )
+    assert treatment_mapping.status_code == 200
+    assert treatment_mapping.json()["groups"] == ["treated"]
+    treatment = client.post("/api/treatment", json={"session_id": session_id, "treated_group": "treated", "doses": [[7, 1], [14, 1]], "starts": 1})
     assert treatment.status_code == 202
     treatment_status = client.get(f"/api/jobs/{treatment.json()['job_id']}").json()
     while treatment_status["status"] in {"queued", "running"}:
         time.sleep(0.05)
         treatment_status = client.get(f"/api/jobs/{treatment.json()['job_id']}").json()
     assert treatment_status["status"] == "done"
-    assert treatment_status["step"] == treatment_status["n_steps"] == 7
-    assert len(treatment_status["result"]["ranking"]) == 7
+    assert treatment_status["step"] == treatment_status["n_steps"] == 12
+    assert len(treatment_status["result"]["ranking"]) == 12
+    assert all(row["curves"][0]["subject"] == "drug_01" for row in treatment_status["result"]["ranking"])
+
+    restored = client.get(f"/api/sessions/{session_id}")
+    assert restored.status_code == 200
+    assert restored.json()["treatment_upload"]["filename"] == "treatment.csv"
+    assert restored.json()["treatment_groups"] == ["treated"]
 
     simulation = client.post("/api/experiments/simulate", json={"session_id": session_id, "scenarios": [{"name": "A", "dose_times": [7], "doses": [1]}]})
     assert simulation.status_code == 202
