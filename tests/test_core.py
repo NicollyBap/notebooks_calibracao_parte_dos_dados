@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.integrate import solve_ivp
 
 from backend.core.fitting import Dataset, calibrate, calibrate_global, default_workers, run_parallel
 from backend.core.io_data import harmonise_headers, infer_groups_from_files, normalise_table_report, read_table
@@ -10,6 +11,37 @@ def test_exponential_simulation_is_positive():
     values = simulate([0, 1, 2], 1.0, "exponential", {"r": 0.2})
     assert np.all(values > 0)
     assert values[-1] > values[0]
+
+
+def test_treatment_simulation_matches_reference_across_dose_boundary():
+    times = np.linspace(0, 40, 300)
+    growth_params = {"r": 2.49815, "f": 14.2442}
+    treatment_params = {"a": 0.2, "b": 1.5}
+    dose_times = [12.0]
+    doses = [1.0]
+
+    def treatment_rate(time, volume):
+        if time < dose_times[0]:
+            return 0.0
+        return treatment_params["a"] * doses[0] * np.exp(-treatment_params["b"] * (time - dose_times[0]))
+
+    def rhs(time, state):
+        volume = max(float(state[0]), 1e-9)
+        growth = growth_params["r"] * volume / (volume + growth_params["f"])
+        return [growth - treatment_rate(time, volume) * volume]
+
+    reference = solve_ivp(
+        rhs,
+        (times[0], times[-1]),
+        [0.8],
+        t_eval=times,
+        method="LSODA",
+        rtol=1e-6,
+        atol=1e-8,
+    ).y[0]
+    actual = simulate(times, 0.8, "linear", growth_params, "ED", treatment_params, zip(dose_times, doses))
+
+    assert np.max(np.abs(actual - reference)) < 1e-3
 
 
 def test_calibration_returns_ranked_models():
