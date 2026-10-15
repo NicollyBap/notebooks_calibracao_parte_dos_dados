@@ -1,0 +1,116 @@
+==========================================================================================
+RESULTADOS DO GRUPO: data_figD
+==========================================================================================
+
+ARQUIVOS
+  Camundongo 1: data_frosberg19_fig3D_NOG_CTRL_1.csv | n=24 | t∈[13.09,177.04] | V∈[0.06103,143.4]
+  Camundongo 2: data_frosberg19_fig3D_NOG_CTRL_2.csv | n=26 | t∈[13.09,190.74] | V∈[0.06103,173.4]
+  Camundongo 3: data_frosberg19_fig3D_NOG_CTRL_3.csv | n=25 | t∈[12.89,190.94] | V∈[0.9925,68.96]
+  Camundongo 4: data_frosberg19_fig3D_NOG_CTRL_4.csv | n=26 | t∈[13.09,190.94] | V∈[0.06103,40.98]
+  Camundongo 5: data_frosberg19_fig3D_NOG_CTRL_5.csv | n=19 | t∈[13.09,143.00] | V∈[0.06103,341.9]
+  Camundongo 6: data_frosberg19_fig3D_NOG_CTRL_6.csv | n=19 | t∈[13.09,142.80] | V∈[0.06103,288.8]
+
+COMPARAÇÃO DE MODELOS (ordenado por BIC)
+      model       BIC       AIC      AICc    LogLik    RMSE     MAE  WAPE (%)  sMAPE (%)    PCC    CCC    ICC  CV_RMSE   CV_MAE                                                                                                                                                                                                                                                                                                          diagnostics     ΔBIC    ΔAICc
+   gompertz 1447.9250 1421.5147 1422.9101 -701.7574 37.6883 23.4876   54.6909   104.2285 0.7175 0.6944 0.6959 136.0091 104.6535                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=3.15e-13)   0.0000   0.0000
+     linear 1457.8898 1434.4140 1435.5217 -709.2070 39.7701 23.4356   54.5700    92.6265 0.6724 0.6434 0.6450 141.4825 105.4839                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=1.26e-13)   9.9648  12.6116
+bertalanffy 1471.9469 1448.4711 1449.5788 -716.2355 41.8389 24.8946   57.9672    68.1029 0.6031 0.5429 0.5447 148.6731 113.1589                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=8.81e-14)  24.0219  26.6687
+ mendelsohn 1477.9969 1454.5211 1455.6288 -719.2606 42.7594 24.8478   57.8581    59.7195 0.5792 0.5134 0.5152      NaN      NaN b no limite [0.25, 3.75] | T0_1 no limite [0.006103, 0.2441] | T0_2 no limite [0.006103, 0.2441] | T0_3 no limite [0.09925, 3.97] | T0_4 no limite [0.006103, 0.2441] | T0_5 no limite [0.006103, 0.2441] | T0_6 no limite [0.006103, 0.2441] | b em região extrema | resíduos não-normais (Shapiro-Wilk p=3.87e-14)  30.0720  32.7188
+   logistic 1498.5536 1475.0778 1476.1855 -729.5389 45.7808 27.3718   63.7354   121.1073 0.6288 0.5840 0.5855      NaN      NaN                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=2.39e-14)  50.6286  53.2754
+    surface 1520.6627 1497.1869 1498.2946 -740.5934 49.0999 29.0256   67.5863   129.4105 0.5789 0.4908 0.4922      NaN      NaN                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=1.25e-15)  72.7377  75.3845
+exponential 1606.4981 1585.9568 1586.8117 -785.9784 65.1789 39.7236   92.4966   171.4472 0.1454 0.0363 0.0365      NaN      NaN                                                                                                                                                                                                                                                                       resíduos não-normais (Shapiro-Wilk p=5.01e-16) 158.5731 163.9017
+
+MELHOR MODELO POR BIC: gompertz
+
+PARÂMETROS E DIAGNÓSTICOS
+
+[GOMPERTZ]  objetivo=1420.41
+         r = 0.216351
+         K = 467.293
+         c = 341.925
+  T0_camundongo_1 = 0.0337766
+  T0_camundongo_2 = 0.0428974
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.00610333
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+  PREDIÇÃO último ponto: RMSE=136 MAE=104.7 WAPE=60.72% CCC=-0.008
+    Camundongo 1: t=177.0 real=120.2 previsto=93.91 erro=26.26
+    Camundongo 2: t=190.7 real=173.4 previsto=96.14 erro=77.24
+    Camundongo 3: t=190.9 real=68.96 previsto=96.82 erro=27.86
+    Camundongo 4: t=190.9 real=40.98 previsto=91.15 erro=50.17
+    Camundongo 5: t=143.0 real=341.9 previsto=92.19 erro=249.7
+    Camundongo 6: t=142.8 real=288.8 previsto=92.12 erro=196.7
+
+[LINEAR]  objetivo=1581.66
+         r = 1.59988
+         f = 19.0818
+  T0_camundongo_1 = 0.0694759
+  T0_camundongo_2 = 0.0954027
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.00610333
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+  PREDIÇÃO último ponto: RMSE=141.5 MAE=105.5 WAPE=61.20% CCC=-0.133
+    Camundongo 1: t=177.0 real=120.2 previsto=106.3 erro=13.92
+    Camundongo 2: t=190.7 real=173.4 previsto=124.4 erro=49.02
+    Camundongo 3: t=190.9 real=68.96 previsto=118.3 erro=49.35
+    Camundongo 4: t=190.9 real=40.98 previsto=89.83 erro=48.84
+    Camundongo 5: t=143.0 real=341.9 previsto=79.56 erro=262.4
+    Camundongo 6: t=142.8 real=288.8 previsto=79.37 erro=209.4
+
+[BERTALANFFY]  objetivo=1750.49
+         r = 0.194074
+     alpha = 0.0370481
+  T0_camundongo_1 = 0.00610333
+  T0_camundongo_2 = 0.0105838
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.00610333
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+  PREDIÇÃO último ponto: RMSE=148.7 MAE=113.2 WAPE=65.65% CCC=-0.083
+    Camundongo 1: t=177.0 real=120.2 previsto=82.35 erro=37.82
+    Camundongo 2: t=190.7 real=173.4 previsto=88.74 erro=84.64
+    Camundongo 3: t=190.9 real=68.96 previsto=88.99 erro=20.03
+    Camundongo 4: t=190.9 real=40.98 previsto=87.41 erro=46.43
+    Camundongo 5: t=143.0 real=341.9 previsto=70.39 erro=271.5
+    Camundongo 6: t=142.8 real=288.8 previsto=70.29 erro=218.5
+
+[MENDELSOHN]  objetivo=1828.36
+         r = 0.254222
+         b = 0.25
+  T0_camundongo_1 = 0.00610333
+  T0_camundongo_2 = 0.244133
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.00610333
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+
+[LOGISTIC]  objetivo=2095.88
+         r = 0.0477555
+         K = 345.345
+  T0_camundongo_1 = 0.12301
+  T0_camundongo_2 = 0.1004
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.0164641
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+
+[SURFACE]  objetivo=2410.8
+         r = 0.796065
+         f = 6823.88
+  T0_camundongo_1 = 0.175821
+  T0_camundongo_2 = 0.12556
+  T0_camundongo_3 = 0.0992495
+  T0_camundongo_4 = 0.0370318
+  T0_camundongo_5 = 0.244133
+  T0_camundongo_6 = 0.244133
+
+[EXPONENTIAL]  objetivo=4248.29
+         r = 0.0329849
+  T0_camundongo_1 = 0.0151595
+  T0_camundongo_2 = 0.0149263
+  T0_camundongo_3 = 0.220737
+  T0_camundongo_4 = 0.0125458
+  T0_camundongo_5 = 0.0513608
+  T0_camundongo_6 = 0.150977

@@ -1,0 +1,142 @@
+==========================================================================================
+RESULTADOS DO GRUPO TRATADO: data_figD
+==========================================================================================
+
+Crescimento fixo: gompertz {'r': 0.216351, 'K': 467.293, 'c': 341.925}
+Esquema: dias=[65.0] doses=[1.0]
+
+ARQUIVOS
+  Camundongo 1: data_frosberg19_fig3D_hIL2_NOG_CART_1.csv | n=25 | t∈[12.92,184.06] | V∈[0.8271,79.82]
+  Camundongo 2: data_frosberg19_fig3D_hIL2_NOG_CART_2.csv | n=25 | t∈[13.12,184.06] | V∈[0.09336,41.69]
+  Camundongo 3: data_frosberg19_fig3D_hIL2_NOG_CART_3.csv | n=19 | t∈[12.92,150.15] | V∈[0.7007,21.9]
+  Camundongo 4: data_frosberg19_fig3D_hIL2_NOG_CART_4.csv | n=20 | t∈[12.92,150.15] | V∈[0.994,10.75]
+
+COMPARAÇÃO DAS FUNÇÕES DE TRATAMENTO (ordenado por BIC)
+     model      BIC      AIC     AICc    LogLik    RMSE     MAE  WAPE (%)  sMAPE (%)     PCC     CCC     ICC  CV_RMSE  CV_MAE                                                                                                                                                                        diagnostics     ΔBIC    ΔAICc
+   T_rampa 618.4294 605.9862 606.7091 -297.9931  6.8830  5.1137   29.7927    63.4059  0.9341  0.9301  0.9308   1.9598  1.7225                                                                                                                                                     T0_4 no limite [0.0994, 3.976]   0.0000   0.0000
+   T_expon 621.5516 606.6198 607.6441 -297.3099  6.8311  5.0862   29.6329    62.2926  0.9323  0.9296  0.9303   2.3904  1.9025                                                                                       dmax no limite [0.2164, 2.164] | lam no limite [0.005, 0.5] | T0_4 no limite [0.0994, 3.976]   3.1222   0.9350
+    T_hill 628.2214 610.8009 612.1836 -298.4005  6.9152  5.1205   29.8326    61.8443  0.9297  0.9271  0.9279   2.3722  1.7895                                                                                            dmax no limite [0.2164, 2.164] | tau no limite [5, 80] | T0_4 no limite [0.0994, 3.976]   9.7919   5.4745
+T_hill_sat 629.4765 609.5674 611.3674 -296.7837  6.7915  4.9496   28.8368    57.7408  0.9319  0.9300  0.9307      NaN     NaN                                                                                 tau no limite [5, 80] | n no limite [1, 8] | h no limite [1, 200] | T0_4 no limite [0.0994, 3.976]  11.0471   4.6583
+   T_pulso 653.6185 638.6867 639.7111 -313.3433  8.1807  6.3517   37.0054    67.8414  0.8906  0.8863  0.8875      NaN     NaN                                                                                                  k no limite [0.001, 0.5] | tau no limite [5, 60] | T0_4 no limite [0.0994, 3.976]  35.1891  33.0019
+      dePR 678.3907 660.9703 662.3530 -323.4851  9.1678  6.6054   38.4840    62.3017  0.8601  0.8562  0.8576      NaN     NaN                                                                                                               sem problemas óbvios | resíduos não-normais (Shapiro-Wilk p=0.00669)  59.9613  55.6439
+        MM 717.7470 702.8151 703.8395 -345.4076 11.7284  8.7841   51.1772    67.4210  0.7648  0.6946  0.6970      NaN     NaN                                                                                                              sem problemas óbvios | resíduos não-normais (Shapiro-Wilk p=4.15e-06)  99.3175  97.1304
+        LS 728.6768 713.7450 714.7694 -350.8725 12.3675  8.0218   46.7355    95.3916  0.7779  0.7268  0.7286      NaN     NaN                                                                                                               sem problemas óbvios | resíduos não-normais (Shapiro-Wilk p=1.1e-06) 110.2474 108.0603
+      none 991.0305 981.0759 981.5521 -486.5380 56.9310 39.0002  227.2193   133.2295 -0.2643 -0.1508 -0.1525      NaN     NaN T0_1 no limite [0.1929, 7.714] | T0_2 no limite [0.09949, 3.98] | T0_3 no limite [0.0994, 3.976] | T0_4 no limite [0.0994, 3.976] | resíduos não-normais (Shapiro-Wilk p=4.19e-08) 372.6010 374.8430
+
+MELHOR FUNÇÃO POR BIC: T_rampa
+
+PARÂMETROS E DIAGNÓSTICOS
+
+[T_rampa]  objetivo=47.375
+      a = 0.00158726
+  T0_camundongo_1 = 3.54442
+  T0_camundongo_2 = 0.704892
+  T0_camundongo_3 = 0.288877
+  T0_camundongo_4 = 0.0993995
+    - T0_4 no limite [0.0994, 3.976]
+  PREDIÇÃO último ponto: RMSE=1.96 MAE=1.723 WAPE=116.32% CCC=-0.497
+    Camundongo 1: t=184.1 real=1.794 previsto=0.2468 erro=1.547
+    Camundongo 2: t=184.1 real=1.794 previsto=0.2014 erro=1.592
+    Camundongo 3: t=150.2 real=0.7007 previsto=3.88 erro=3.179
+    Camundongo 4: t=150.2 real=1.635 previsto=2.207 erro=0.5718
+
+[T_expon]  objetivo=46.6641
+   dmax = 0.253936
+    lam = 0.00734677
+  T0_camundongo_1 = 3.68146
+  T0_camundongo_2 = 0.745344
+  T0_camundongo_3 = 0.309562
+  T0_camundongo_4 = 0.0999668
+    - dmax no limite [0.2164, 2.164]
+    - lam no limite [0.005, 0.5]
+    - T0_4 no limite [0.0994, 3.976]
+  PREDIÇÃO último ponto: RMSE=2.39 MAE=1.903 WAPE=128.48% CCC=-0.384
+    Camundongo 1: t=184.1 real=1.794 previsto=0.854 erro=0.9397
+    Camundongo 2: t=184.1 real=1.794 previsto=0.7029 erro=1.091
+    Camundongo 3: t=150.2 real=0.7007 previsto=5.106 erro=4.405
+    Camundongo 4: t=150.2 real=1.635 previsto=2.81 erro=1.175
+
+[T_hill]  objetivo=47.8206
+   dmax = 0.216351
+    tau = 80
+      n = 1.15306
+  T0_camundongo_1 = 3.72265
+  T0_camundongo_2 = 0.76112
+  T0_camundongo_3 = 0.322341
+  T0_camundongo_4 = 0.105329
+    - dmax no limite [0.2164, 2.164]
+    - tau no limite [5, 80]
+    - T0_4 no limite [0.0994, 3.976]
+  PREDIÇÃO último ponto: RMSE=2.372 MAE=1.789 WAPE=120.84% CCC=-0.376
+    Camundongo 1: t=184.1 real=1.794 previsto=1.163 erro=0.6311
+    Camundongo 2: t=184.1 real=1.794 previsto=0.9555 erro=0.8382
+    Camundongo 3: t=150.2 real=0.7007 previsto=5.162 erro=4.461
+    Camundongo 4: t=150.2 real=1.635 previsto=2.863 erro=1.227
+
+[T_hill_sat]  objetivo=46.1245
+   dmax = 46.0297
+    tau = 79.2158
+      n = 1
+      h = 200
+  T0_camundongo_1 = 3.6356
+  T0_camundongo_2 = 0.84468
+  T0_camundongo_3 = 0.375653
+  T0_camundongo_4 = 0.136831
+    - tau no limite [5, 80]
+    - n no limite [1, 8]
+    - h no limite [1, 200]
+    - T0_4 no limite [0.0994, 3.976]
+
+[T_pulso]  objetivo=66.9231
+      k = 0.00362494
+    tau = 60
+  T0_camundongo_1 = 4.37511
+  T0_camundongo_2 = 0.964055
+  T0_camundongo_3 = 0.457826
+  T0_camundongo_4 = 0.15486
+    - k no limite [0.001, 0.5]
+    - tau no limite [5, 60]
+    - T0_4 no limite [0.0994, 3.976]
+
+[dePR]  objetivo=84.049
+      d = 0.425675
+      s = 1.26275
+    lam = 0.437368
+  T0_camundongo_1 = 5.55624
+  T0_camundongo_2 = 2.02798
+  T0_camundongo_3 = 1.61339
+  T0_camundongo_4 = 0.543855
+    - sem problemas óbvios
+    - resíduos não-normais (Shapiro-Wilk p=0.00669)
+
+[MM]  objetivo=137.555
+      a = 0.182364
+      b = 1.7121
+  T0_camundongo_1 = 3.85266
+  T0_camundongo_2 = 1.84806
+  T0_camundongo_3 = 1.65218
+  T0_camundongo_4 = 0.615974
+    - sem problemas óbvios
+    - resíduos não-normais (Shapiro-Wilk p=4.15e-06)
+
+[LS]  objetivo=152.955
+      a = 0.412523
+      b = 0.163394
+  T0_camundongo_1 = 2.98841
+  T0_camundongo_2 = 1.39878
+  T0_camundongo_3 = 1.53695
+  T0_camundongo_4 = 0.838245
+    - sem problemas óbvios
+    - resíduos não-normais (Shapiro-Wilk p=1.1e-06)
+
+[none]  objetivo=3241.14
+  (sem parâmetros de tratamento)
+  T0_camundongo_1 = 0.192858
+  T0_camundongo_2 = 0.0994938
+  T0_camundongo_3 = 0.0993995
+  T0_camundongo_4 = 0.0993995
+    - T0_1 no limite [0.1929, 7.714]
+    - T0_2 no limite [0.09949, 3.98]
+    - T0_3 no limite [0.0994, 3.976]
+    - T0_4 no limite [0.0994, 3.976]
+    - resíduos não-normais (Shapiro-Wilk p=4.19e-08)
