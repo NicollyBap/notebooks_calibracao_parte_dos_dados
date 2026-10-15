@@ -101,17 +101,21 @@ This freezes that law for the next steps and unlocks the **Treatment** tab.
 
 On the **Treatment** tab (step 04):
 
-1. **Treated group**: choose `hIL2_NOG_CART`.
-2. **Dose days** and **Doses**: the schedule that was actually used, as comma-separated lists
+1. The treatment fit reuses the subjects already uploaded and mapped in the **Data** step.
+   Make sure the mapping includes a group column and that at least one group is different
+   from the control group. A separate treatment upload is optional when those observations
+   are not part of the main dataset.
+2. **Treated group**: choose `hIL2_NOG_CART`.
+3. **Dose days** and **Doses**: the schedule that was actually used, as comma-separated lists
    of the same length, for example `60,67,74` and `1,1,1`.
-3. Click **Compare treatments**.
+4. Click **Compare treatments**.
 
 > ⚠ **Important for this example.** The example files do **not** contain the dosing schedule,
 > and their time axis runs from day 13 to day 191. Dose days are on the **same clock as the
 > time column** of your data. Whatever you type here is an assumption: use the example to
 > learn the mechanics, not to draw conclusions. With your own data, enter the real schedule.
 
-The app fits seven treatment terms plus **`none`** (no treatment effect) and ranks them. If
+The app fits all available treatment terms plus **`none`** (no treatment effect) and ranks them. If
 `none` is not beaten, the data show no evidence of a treatment effect for that schedule.
 The **Term** menu chooses which term is carried to the simulation.
 

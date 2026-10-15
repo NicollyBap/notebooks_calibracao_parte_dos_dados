@@ -170,6 +170,9 @@ td b { font-weight: 500; }
 .treatment-view .panel { padding: 18px; }
 .treatment-view .panel > .muted { margin-bottom: 14px; }
 .treatment-view .validation-panel { padding: 18px; }
+.treatment-source-panel details { margin-top: 10px; }
+.treatment-source-panel details summary { cursor: pointer; color: var(--muted); font: 500 12px/1.5 var(--font-mono); }
+.treatment-source-panel details .dropzone { min-height: 86px; margin: 12px 0 0; padding: 16px; }
 .treatment-view .table-wrap { max-height: 170px; margin-top: 12px; overflow: auto; }
 .treatment-view th, .treatment-view td { padding: 7px 8px; }
 .treatment-view .grid { grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr); gap: 16px; }
