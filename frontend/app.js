@@ -182,14 +182,13 @@ function residualsChart(result) { const curves = result.ranking[0]?.curves || []
 function resultsView() { const result = state.calibration; if (!result) return `<section class="panel empty"><p>Run a calibration first.</p></section>`; const sentence = result.tie_with.length ? `<b>${esc(result.winner)}</b> wins, but ${result.tie_with.map(esc).join(", ")} is within a ΔBIC of 2: the data do not clearly separate them.` : `<b>${esc(result.winner)}</b> wins clearly; no other model is within 2 BIC points.`; return `<section class="panel"><div class="preview-head"><div><span class="eyebrow">03 / RANKING</span><h2>What the data say.</h2></div><span class="tag">${esc((result.selection_metric || "bic").toUpperCase())} · Δ &lt; 2 = tie</span></div><div class="metric-row"><div class="metric"><small>Selected model</small><strong class="winner">${esc(result.winner)}</strong></div><div class="metric"><small>Ties (ΔBIC &lt; 2)</small><strong>${result.tie_with.length ? result.tie_with.join(", ") : "None"}</strong></div><div class="metric"><small>T0 strategy</small><strong>${esc(result.t0_strategy || "free")}</strong></div></div><div class="notice">${sentence}</div>${ignoredNotice()}<div class="table-wrap"><table><thead><tr><th>Rank</th><th>Law</th><th>BIC</th><th>AICc</th><th>ΔBIC</th><th>Akaike weight</th><th>RMSE</th><th>Last point (MAE)</th><th>T0 bounds</th><th>Action</th></tr></thead><tbody>${result.ranking.map((row, index) => `<tr><td>${index + 1}</td><td><b>${esc(row.model)}</b></td><td>${row.metrics.bic.toFixed(2)}</td><td>${row.metrics.aicc.toFixed(2)}</td><td>${row.delta_bic.toFixed(2)}</td><td>${(row.akaike_weight * 100).toFixed(1)}%</td><td>${row.metrics.rmse.toFixed(3)}</td><td>${row.validation?.enabled ? row.validation.mae.toFixed(3) : "-"}</td><td>${diagnosticsCell(row)}</td><td><button class="button secondary use-model" data-model="${esc(row.model)}" type="button">Use</button></td></tr>`).join("")}</tbody></table></div><div class="chart-mount" id="residuals-chart"></div></section>`; }
 function treatmentDataChart(result) {
   const subjects = result.subjects || [];
-  const groups = [...new Set(subjects.map((subject) => subject.group))];
   const series = subjects.filter((subject) => (subject.t || []).length).map((subject) => ({
     label: `${subject.id} (${subject.group})`,
-    color: colorFor(groups.indexOf(subject.group)),
+    color: colorFor(subjects.indexOf(subject)),
     points: subject.t.map((time, index) => [time, subject.v[index]]),
     style: "points",
   }));
-  if (series.length) mountChart($("#treatment-data-chart"), series, { title: "Uploaded treatment observations", ariaLabel: "Uploaded treatment observations", legend: series.length <= 14 });
+  if (series.length) mountChart($("#treatment-data-chart"), series, { title: "Uploaded treatment observations", ariaLabel: "Uploaded treatment observations", height: 210, legend: true });
 }
 function treatmentUploadPanelMarkup() {
   const upload = state.treatmentUpload;
@@ -212,14 +211,13 @@ function treatmentView() {
     : `<div class="notice">${noneBeaten ? `<b>${esc(treatment.winner)}</b> explains the uploaded treatment data better than no treatment (lower BIC than <code>none</code>).` : `No treatment term explained the uploaded data better than <code>none</code>: check the dose schedule before concluding there is an effect.`}</div>
       <div class="table-wrap"><table><thead><tr><th>Rank</th><th>Term</th><th>BIC</th><th>ΔBIC</th></tr></thead><tbody>${treatment.ranking.map((row, index) => `<tr><td>${index + 1}</td><td><b>${esc(row.model)}</b></td><td>${row.metrics.bic.toFixed(2)}</td><td>${row.delta_bic.toFixed(2)}</td></tr>`).join("")}</tbody></table></div>
       <div class="treatment-chart-grid">${treatment.ranking.map((row, index) => `<section class="metric"><b>${index + 1}. ${esc(row.model)}</b><div class="chart-mount" id="treatment-fit-chart-${index}"></div></section>`).join("")}</div>`;
-  return `${treatmentUploadPanelMarkup()}<div class="grid"><section class="panel"><span class="eyebrow">04 / TREATMENT</span><h2>Fit treatment.</h2><p class="muted">The winning growth law stays fixed. Every treatment term is fitted against the separately uploaded observations.</p><form id="treatment-form">${select("Treated group", "treated_group", groups[0] || "", groups)}${select("Term", "model", "ED", treatmentModels)}<div id="treatment-equation" class="notice">${esc(treatmentEquations.ED)}<br><small>For the five time-dependent terms, s = max(t − first treatment day, 0); dose sizes do not enter these equations.</small></div><div class="field"><label>Dose days</label><input name="days" value="7,14,21"></div><div class="field"><label>Doses</label><input name="doses" value="1,1,1"></div><div class="field"><label>Starts</label><input name="starts" type="number" min="1" max="20" value="3"></div><button class="button" type="submit" ${state.treatmentMapping?.ready ? "" : "disabled"}>Compare treatments →</button></form></section><section class="panel"><span class="eyebrow">GROWTH FIXED</span><h2>${esc(state.calibration?.winner || "-")}</h2><div id="treatment-status" class="empty"><p>Twelve terms available, ranked by BIC.</p></div>${resultsPanel}</section></div>`;
+  return `<div class="treatment-view">${treatmentUploadPanelMarkup()}<div class="grid"><section class="panel"><span class="eyebrow">04 / TREATMENT</span><h2>Fit treatment.</h2><p class="muted">The winning growth law stays fixed. Every treatment term is fitted against the separately uploaded observations.</p><form id="treatment-form">${select("Treated group", "treated_group", groups[0] || "", groups)}${select("Term", "model", "ED", treatmentModels)}<div id="treatment-equation" class="notice">${esc(treatmentEquations.ED)}<br><small>For the five time-dependent terms, s = max(t − first treatment day, 0); dose sizes do not enter these equations.</small></div><div class="field"><label>Dose days</label><input name="days" value="7,14,21"></div><div class="field"><label>Doses</label><input name="doses" value="1,1,1"></div><div class="field"><label>Starts</label><input name="starts" type="number" min="1" max="20" value="3"></div><button class="button" type="submit" ${state.treatmentMapping?.ready ? "" : "disabled"}>Compare treatments →</button></form></section><section class="panel"><span class="eyebrow">GROWTH FIXED</span><h2>${esc(state.calibration?.winner || "-")}</h2><div id="treatment-status" class="empty"><p>Eleven terms available, ranked by BIC.</p></div>${resultsPanel}</section></div></div>`;
 }
 function treatmentFitCharts(result) {
   (result.ranking || []).forEach((row, index) => {
     const curves = row.curves || [];
-    const groups = [...new Set(curves.map((curve) => curve.group))];
     const series = curves.flatMap((curve) => {
-      const color = colorFor(groups.indexOf(curve.group));
+      const color = colorFor(curves.indexOf(curve));
       const subject = `${curve.subject} (${curve.group})`;
       return [
         { label: `Observed · ${subject}`, color, points: curve.t.map((time, point) => [time, curve.observed[point]]), style: "points" },
@@ -229,7 +227,8 @@ function treatmentFitCharts(result) {
     if (series.length) mountChart($(`#treatment-fit-chart-${index}`), series, {
       title: `${row.model} — observed vs fitted`,
       ariaLabel: `Observed and fitted treatment curve for ${row.model}`,
-      legend: curves.length <= 7,
+      height: 190,
+      legend: true,
     });
   });
 }
