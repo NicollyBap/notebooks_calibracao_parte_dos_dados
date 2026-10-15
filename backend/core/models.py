@@ -77,9 +77,41 @@ def simulate(times: Iterable[float], initial_volume: float, growth_model: str, g
     if treatment_model == "none" and growth_model == "exponential":
         exponent = np.clip(float(growth_params.get("r", 0.0)) * (grid - grid[0]), -700.0, 700.0)
         return np.nan_to_num(float(initial_volume) * np.exp(exponent), nan=1e300, posinf=1e300, neginf=0.0)
-    # RK45 is reentrant; LSODA uses a process-global callback and can fail when
-    # a calibration job overlaps another local request.
-    result = solve_ivp(rhs, (float(grid[0]), float(grid[-1])), [max(float(initial_volume), 1e-9)], t_eval=grid, method="RK45", max_step=np.inf)
-    if not result.success or result.y.shape[1] != len(grid):
-        raise RuntimeError(result.message)
-    return np.maximum(result.y[0], 0.0)
+    if treatment_model == "none":
+        result = solve_ivp(rhs, (float(grid[0]), float(grid[-1])), [max(float(initial_volume), 1e-9)], t_eval=grid, method="RK45", max_step=np.inf)
+        if not result.success or result.y.shape[1] != len(grid):
+            raise RuntimeError(result.message)
+        return np.maximum(result.y[0], 0.0)
+
+    # Treatment rates jump when a dose is administered. Integrating through a
+    # jump in one RK45 call makes the result depend on the output grid and can
+    # noticeably drift from the notebook reference. Restart at every dose
+    # boundary so each solver call sees a continuous right-hand side.
+    boundaries = sorted({day for day, _ in dose_list if grid[0] < day < grid[-1]})
+    segments = [grid[0], *boundaries, grid[-1]]
+    values = np.empty_like(grid)
+    state = np.array([max(float(initial_volume), 1e-9)])
+
+    for start, end in zip(segments[:-1], segments[1:]):
+        mask = (grid >= start) & (grid <= end)
+        segment_grid = grid[mask]
+        if len(segment_grid) == 0 or segment_grid[0] != start:
+            segment_grid = np.insert(segment_grid, 0, start)
+        if segment_grid[-1] != end:
+            segment_grid = np.append(segment_grid, end)
+        result = solve_ivp(
+            rhs,
+            (float(start), float(end)),
+            state,
+            t_eval=segment_grid,
+            method="RK45",
+            rtol=1e-6,
+            atol=1e-8,
+        )
+        if not result.success or result.y.shape[1] != len(segment_grid):
+            raise RuntimeError(result.message)
+        output_mask = (grid >= start) & (grid <= end)
+        values[output_mask] = np.interp(grid[output_mask], segment_grid, result.y[0])
+        state = result.y[:, -1]
+
+    return np.maximum(values, 0.0)
