@@ -1,0 +1,112 @@
+==========================================================================================
+RESULTADOS DO GRUPO TRATADO: data_figB
+==========================================================================================
+
+Crescimento fixo: bertalanffy {'r': 0.566208, 'alpha': 0.0387502}
+Esquema: dias=[6.0] doses=[1.0]
+
+ARQUIVOS
+  Camundongo 1: data_frosberg19_fig3B_hIL2_NOG_CART_1.csv | n=18 | t∈[0.79,61.01] | V∈[0.0276,163]
+  Camundongo 2: data_frosberg19_fig3B_hIL2_NOG_CART_2.csv | n=18 | t∈[0.79,61.01] | V∈[0.0276,118.8]
+  Camundongo 3: data_frosberg19_fig3B_hIL2_NOG_CART_3.csv | n=18 | t∈[0.79,60.90] | V∈[0.0276,95.67]
+
+COMPARAÇÃO DAS FUNÇÕES DE TRATAMENTO (ordenado por BIC)
+  model      BIC      AIC     AICc    LogLik     RMSE      MAE  WAPE (%)  sMAPE (%)     PCC     CCC     ICC  CV_RMSE  CV_MAE                                                                                                                                               diagnostics     ΔBIC    ΔAICc
+     CD 590.4259 580.4810 581.7310 -285.2405  47.2731  38.2297   87.1081   109.1709 -0.3558 -0.1863 -0.1897  32.3136 32.2072                                                                  b no limite [0, 8] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   0.0000   0.0000
+AccelED 590.7255 580.7806 582.0306 -285.3903  47.1990  37.4387   85.3056   108.0560 -0.3399 -0.1573 -0.1600  32.3220 32.2153                               b no limite [0, 5] | T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   0.2997   0.2997
+     LS 590.7255 580.7806 582.0306 -285.3903  47.1990  37.4387   85.3056   108.0560 -0.3399 -0.1573 -0.1600  32.3220 32.2153                               b no limite [0, 1] | T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   0.2997   0.2997
+     ED 590.7255 580.7806 582.0306 -285.3903  47.1990  37.4387   85.3056   108.0560 -0.3399 -0.1573 -0.1600      NaN     NaN                               b no limite [0, 5] | T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   0.2997   0.2997
+     MM 590.7255 580.7806 582.0306 -285.3903  47.1990  37.4387   85.3056   108.0560 -0.3399 -0.1573 -0.1600      NaN     NaN                                                    T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   0.2997   0.2997
+   dePR 594.7145 582.7806 584.5679 -285.3903  47.1990  37.4387   85.3056   108.0560 -0.3399 -0.1573 -0.1600      NaN     NaN s no limite [1e-06, 50] | lam no limite [0.1, 5] | T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104]   4.2886   2.8369
+   none 755.5659 749.5989 750.0789 -371.7995 227.5729 164.2001  374.1370   136.2449 -0.5848 -0.1566 -0.1590      NaN     NaN                                                    T0_1 no limite [0.00276, 0.1104] | T0_2 no limite [0.00276, 0.1104] | T0_3 no limite [0.00276, 0.1104] 165.1400 168.3480
+
+MELHOR FUNÇÃO POR BIC: CD
+
+PARÂMETROS E DIAGNÓSTICOS
+
+[CD]  objetivo=2234.74
+      a = 0.119886
+      b = 0
+  T0_camundongo_1 = 0.10731
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - b no limite [0, 8]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+  PREDIÇÃO último ponto: RMSE=32.31 MAE=32.21 WAPE=351.72% CCC=0.000
+    Camundongo 1: t=61.0 real=6.351 previsto=41.37 erro=35.02
+    Camundongo 2: t=61.0 real=12.67 previsto=41.38 erro=28.71
+    Camundongo 3: t=60.9 real=8.453 previsto=41.35 erro=32.9
+
+[AccelED]  objetivo=2227.75
+      a = 0.125838
+      b = 0
+  T0_camundongo_1 = 0.110389
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - b no limite [0, 5]
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+  PREDIÇÃO último ponto: RMSE=32.32 MAE=32.22 WAPE=351.81% CCC=0.000
+    Camundongo 1: t=61.0 real=6.351 previsto=41.38 erro=35.03
+    Camundongo 2: t=61.0 real=12.67 previsto=41.38 erro=28.71
+    Camundongo 3: t=60.9 real=8.453 previsto=41.36 erro=32.9
+
+[LS]  objetivo=2227.75
+      a = 0.125838
+      b = 0
+  T0_camundongo_1 = 0.110389
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - b no limite [0, 1]
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+  PREDIÇÃO último ponto: RMSE=32.32 MAE=32.22 WAPE=351.81% CCC=0.000
+    Camundongo 1: t=61.0 real=6.351 previsto=41.38 erro=35.03
+    Camundongo 2: t=61.0 real=12.67 previsto=41.38 erro=28.71
+    Camundongo 3: t=60.9 real=8.453 previsto=41.36 erro=32.9
+
+[ED]  objetivo=2227.75
+      a = 0.125838
+      b = 0
+  T0_camundongo_1 = 0.110389
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - b no limite [0, 5]
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+
+[MM]  objetivo=2227.75
+      a = 0.255413
+      b = 1.0297
+  T0_camundongo_1 = 0.110389
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+
+[dePR]  objetivo=2227.75
+      d = 0.125838
+      s = 1e-06
+    lam = 0.1
+  T0_camundongo_1 = 0.110389
+  T0_camundongo_2 = 0.110389
+  T0_camundongo_3 = 0.110389
+    - s no limite [1e-06, 50]
+    - lam no limite [0.1, 5]
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
+
+[none]  objetivo=51789.4
+  (sem parâmetros de tratamento)
+  T0_camundongo_1 = 0.00275972
+  T0_camundongo_2 = 0.00275972
+  T0_camundongo_3 = 0.00275972
+    - T0_1 no limite [0.00276, 0.1104]
+    - T0_2 no limite [0.00276, 0.1104]
+    - T0_3 no limite [0.00276, 0.1104]
